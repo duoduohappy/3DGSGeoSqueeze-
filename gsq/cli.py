@@ -126,6 +126,10 @@ def main(argv=None) -> int:
     s.add_argument("dir", nargs="?", default="out")
     s.add_argument("--port", type=int, default=8000)
 
+    tb = sub.add_parser("testbench", help="测试工作台：在线 3D Tiles/矢量地址加载 + zip 上传测试")
+    tb.add_argument("--port", type=int, default=8619)
+    tb.add_argument("--work", default="out/testbench", help="工作产物目录")
+
     t = sub.add_parser("compress-tiles", help="读入已有 3D Tiles 并按瓦片流式再压缩（城市级可用）")
     t.add_argument("input")
     t.add_argument("-o", "--out", default="out_tiles2")
@@ -270,6 +274,10 @@ def _dispatch(args) -> int:
 
     if args.cmd == "serve":
         return _serve(args.dir, args.port)
+
+    if args.cmd == "testbench":
+        from .testbench import serve_testbench
+        return serve_testbench(port=args.port, work=args.work)
 
     if args.cmd == "doctor":
         from .raster import backend_info

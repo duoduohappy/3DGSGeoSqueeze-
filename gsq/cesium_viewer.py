@@ -88,9 +88,29 @@ if (VFS) {
   const qsp = new URLSearchParams(location.search);
   const qsts = qsp.get('ts') || 'tileset.json';
   const tsUrl = VFS ? ('vfile:///' + qsts) : qsts;
-  const ts = await Cesium.Cesium3DTileset.fromUrl(tsUrl,
-      {maximumScreenSpaceError: 8, skipLevelOfDetail: false, backFaceCulling: false,
-       modelUpAxis: Cesium.Axis.Z, modelForwardAxis: Cesium.Axis.X});
+  // 上轴：?up=z|y|x 强制指定；缺省 auto——读 tileset.asset.gltfUpAxis（"Z" → Z-up 直存，
+  // 无声明按 3D Tiles 默认交由 Cesium 做 Y-up→Z-up 旋转），兼容外部标准数据
+  async function detectUpAxis() {
+    const up = qsp.get('up');
+    if (up === 'z') return Cesium.Axis.Z;
+    if (up === 'y') return Cesium.Axis.Y;
+    if (up === 'x') return Cesium.Axis.X;
+    try {
+      let asset;
+      if (VFS) {
+        const b64 = VFS['vfile:///' + qsts];
+        if (!b64) return null;
+        asset = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), c => c.charCodeAt(0)))).asset;
+      } else {
+        asset = (await (await fetch(qsts)).json()).asset;
+      }
+      return (asset && asset.gltfUpAxis === 'Z') ? Cesium.Axis.Z : null;
+    } catch (e) { return null; }
+  }
+  const opts = {maximumScreenSpaceError: 8, skipLevelOfDetail: false, backFaceCulling: false};
+  const ua = await detectUpAxis();
+  if (ua) { opts.modelUpAxis = ua; opts.modelForwardAxis = Cesium.Axis.X; }
+  const ts = await Cesium.Cesium3DTileset.fromUrl(tsUrl, opts);
   s.primitives.add(ts);
   // geo=1：把本地坐标场景放到椭球面（ENU 框架），避开"场景在地球内部"的深度退化
   if (qsp.has('geo')) {

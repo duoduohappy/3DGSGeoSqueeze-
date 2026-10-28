@@ -12,3 +12,7 @@ data/_mesh_probe/
 
 # 超大可再生成样例（132MB，gen-sample --city-tiles 可重建）
 data/city_big/
+
+# 测试工作台运行时产物
+out/testbench/
+_diag_shot.py

@@ -126,6 +126,7 @@ serve        本地 HTTP 服务打开流式查看器
 compress-tiles  读入已有 3D Tiles 逐瓦片再压缩（--prune/--method/--max-tile-pts/--pointify/--tex-max-dim/--tex-quality）
 tiles-info      扫描 3D Tiles 数据集（瓦片/格式/点数/包围盒，不驻留点数据）
 compress-vector 矢量压缩：简化 + 整型化 + 去重 + 分块 LOD（--tol/--levels）
+testbench    测试工作台：在线 3D Tiles/矢量地址加载 + zip 上传测试（--port/--work）
 gen-sample      合成样例；--city-tiles / --city-vector / --city-mesh 生成城市级测试数据
 doctor       环境与后端能力报告
 ```
@@ -164,6 +165,24 @@ python -m gsq serve out_mesh        # 大数据集（>8MB）回退外链版，�
 - **headless 软渲染限制**：无头截图（swiftshader）下 UV>1 的 REPEAT 平铺纹理触发渲染 bug；真实 GPU 不受影响。查看器默认机位为正俯视以保证截图脚本稳定，`?pitch=-1.1` 可切斜视角
 
 实测（合成 4×4 带纹理城市，16 b3dm 瓦片）：内嵌单文件 672KB，**file:// 双击与 HTTP 两种方式均完整渲染**建筑 + 窗户纹理 + 地面车道线，位置正确、无放倒、无错位；10MB 城市级数据集自动回退外链模式且不影响压缩管线流式内存（峰值 9.7MB）。参考截图 `out/cesium_city_final.png`。
+
+## 测试工作台（在线数据 + zip 上传）
+
+`python -m gsq testbench --port 8619` 启动单页测试工作台（零第三方依赖，标准库 HTTP 服务），四条通道：
+
+1. **在线 3D Tiles**：输入 tileset.json 地址 → 后端反代（`/p/<b64>/...`，任意源免 CORS）→ 结构统计（版本/瓦片数/内容格式/上轴）→ CesiumJS 直读渲染
+2. **在线矢量（GeoJSON）**：输入地址 → 下载 → `compress-vector` 压缩 + 评测 → 矢量查看器渲染
+3. **上传 3D Tiles zip**：解压（防 zip-slip）→ 结构校验 → 自动生成内嵌 cesium.html（≤8MB）/外链渲染
+4. **上传矢量 zip**（.geojson/.json）→ compress-vector → 查看器渲染
+
+界面含预设下拉（已验证的公开源：本仓库 raw 带纹理城市、Cesium 官方 3d-tiles-samples、world.geo.json 国家边界）。实测记录（截图见 `out/testbench_*.png`）：
+
+- 在线自有城市 17 瓦片经反代在线加载，Cesium 完整渲染
+- world.geo.json 293 要素 → 压缩 15.0x、最大偏离 0.061m，查看器世界地图正确
+- zip 上传（带一层根目录）解压校验 16 b3dm → 内嵌单文件渲染
+- Cesium 官方 TilesetWithTreeBillboards（3D Tiles 1.0 / i3dm / ECEF 坐标 / Y-up）正确加载渲染——`cesium.html` 新增上轴自适应：默认读 `asset.gltfUpAxis`，无声明按 3D Tiles 默认（Y-up 旋转），`?up=z|y|x` 可强制；ECEF 尺度数据建议加 `?nolog=1`（对数深度）
+
+代理说明：后端反代按 `HTTPS_PROXY 环境变量 → 直连 → 127.0.0.1:7897` 顺序自动探测。
 
 three.js 路线：GLTFLoader 原生支持 `KHR_mesh_quantization` 的 glb 可直接加载；pnts 需自定义 loader（读 Feature Table + 3D Tiles 语义），工作量更大，未在本仓库实现。
 
