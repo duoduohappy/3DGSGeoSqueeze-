@@ -33,7 +33,7 @@ python -m gsq serve out                               # 打开流式查看器 ht
 - **大坐标精度**：ECEF（\|x\|≈5.2e6）用 float64 累积 `tile.transform`，减去场景原点存 float32，
   输出根节点 `transform` 平移复原 —— 实测逐点误差 **2.08 mm**（prune=0）
 - **点云输出自动选 pnts**：u16 体量化 + u8 RGB ≈ 9 B/点，比逐点 GLB 再省一半
-- **网格瓦片纹理保留**：三角面 b3dm/glb 走独立管线——几何 u16 量化（误差 = extent/65535，120m 瓦片 ≈1.8 mm）、
+- **网格瓦片纹理保留**：三角面 b3dm/glb 走独立管线——几何 u16 量化（实测误差 ≤ 半格 = extent/131070，120 m 瓦片 ≈0.9 mm）、
   UV u16 量化、体素聚类抽稀（簇内位置/UV 均值，三角形大面积退化时自动停在上一档，宁少抽不毁几何）、
   纹理 Pillow 重压缩（等比缩放 + JPEG/WebP 重编码，重编码反而变大则保留原图，只赚不赔）
 - **纹理保真验收**：逐纹理 PSNR（在压缩分辨率下对比）+ 三角形/顶点数守恒 + 峰值内存上界，全部进入测试断言
@@ -102,6 +102,11 @@ python -m gsq compress data/tile.las -o out --platform mobile
 | **lowrank 低秩** | SH 矩阵 SVD → U·diag(S)·Vᵀ+μ，因子 **int8 量化**存储 | 由编码代价模型决策（见下） |
 
 **编码代价模型**：VQ 每基元 1 字节 vs 低秩每基元 rank 字节——对标准 3DGS（SH≤16 系数）低秩必然不划算，planner 自动选 VQ；高维 SH（如 64 系数）且有真实低秩结构时自动切低秩。盲开低秩会让产物大 5 倍（实测教训）。
+
+**量化口径统一**（`gsq/quant.py`）：affine 码型（任意区间，用于 pos/opacity/scale/rot/SH）与
+定点码型（固定区间，用于 glTF normalized accessor / QUANTIZED_VOLUME）收敛到一处，
+所有通道共用同一误差定义：**理论界 = step/2，实际可达界 = step/2 + 4 ULP(量级)**。
+网格与 pnts 的量化误差由编码器回算后报告（`geom_quant_max_err`），不再按整格粗估。
 
 ### 模型线：ONNX 任务模型压缩（H3DNAS 路线）
 

@@ -304,7 +304,8 @@ class _Bench:
                        + ("该瓦片为网格，无球谐可降。" if is_mesh else "该瓦片点云不含球谐系数。")},
             {"stage": "量化 quantize", "executed": bool(quantize),
              "detail": f"位置 {pos_bits} bit" + ("（KHR_mesh_quantization）" if is_mesh else ""),
-             "effect": f"几何量化步长 {res['geom_quant_step'] * 1000:.2f} mm"},
+             "effect": (f"几何量化步长 {res['geom_quant_step'] * 1000:.2f} mm · "
+                        f"实测最大误差 {res.get('geom_quant_max_err', 0) * 1000:.2f} mm")},
         ]
         if res.get("tex_bytes_in"):
             stages.append({"stage": "纹理重压缩", "executed": True,
@@ -320,7 +321,7 @@ class _Bench:
                              "bytes_out", "ratio", "point_ratio", "mesh_out", "tris_in",
                              "tris_out", "tri_keep", "tex_bytes_in", "tex_bytes_out",
                              "tex_ratio", "tex_psnr_min", "tex_psnr_mean",
-                             "geom_quant_step") if k in res},
+                             "geom_quant_step", "geom_quant_max_err") if k in res},
                 "stages": stages, "download_mb": round(nbytes / 1024 ** 2, 2),
                 "complete": complete,
                 "view": f"/w/{vid}/out/{rel}" if rel else None,

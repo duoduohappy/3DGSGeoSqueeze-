@@ -53,11 +53,11 @@ flowchart TB
 
 ## 模块分层
 
-`gsq` 包共 22 个模块 7,831 行：
+`gsq` 包共 22 个模块 7,171 行：
 
 | 分组 | 模块 | 职责 |
 |---|---|---|
-| 核心流水线 | `ir` `analyze` `stages` `pipeline` `export` | 中间表示、画像与配方、阶段算子、编排与 checkpoint、导出与评测 |
+| 核心流水线 | `ir` `quant` `analyze` `stages` `pipeline` `export` | 中间表示、**统一量化码型与误差上界**、画像与配方、阶段算子、编排与 checkpoint、导出与评测 |
 | 摄取适配 | `tiles_in` `vector` `mesh` `raster` `samples` | 已有 3D Tiles / 矢量 / 网格 / 栅格读入，合成样例 |
 | 交付与验证 | `viewer` `cesium_viewer` `vec_viewer` `mesh_viewer` `testbench` | 自包含 WebGL 查看器、Cesium 查看器、数据源测试工作台 |
 | 旁路与入口 | `model` `spz` `cli` `render` | ONNX 压缩、SPZ 编解码、命令行、渲染辅助 |
@@ -92,7 +92,22 @@ flowchart TB
 - 模型线不支持分组卷积与控制流子图；`Reshape` / `Add` / `Concat` 等通道约束节点保守跳过并计入 `skipped`。
 - 未实现：SOG、QAT（需 torch）、LPIPS（需 torch）、e57 读取。
 
+## 量化口径（跨通道统一）
+
+`gsq/quant.py` 收口了此前分散在四处、互相独立的定点编码：
+
+| 码型 | 语义 | 使用方 |
+|---|---|---|
+| `affine_encode/decode` | 任意 `[lo, hi]` → `[0, 2^bits-1]`，`x = q·step + lo` | `stages.quantize`（pos/opacity/scale/rot/SH）、`lowrank` 因子 |
+| `normalized_encode/decode` | 固定区间 → 满量程整数（glTF normalized / QUANTIZED_VOLUME） | 网格几何与 UV、点图元 GLB、pnts 体量化 |
+
+误差判定统一为：**理论界 `step/2`；实际可达界 `step/2 + 4 ULP(量级)`**
+（`practical_bound`，编码期减法与解码期回代各 ≤2 ULP）。此前网格侧只报 `step`，
+等于把实际误差说大一倍（120 m 瓦片实测 0.9 mm 而非 1.8 mm）。
+
 ## 尚未收拢的地方
 
-矢量、网格、栅格三条线（`vector.py` / `mesh.py` / `raster.py`）各有自己的简化 + 整型化 + 拓扑去重实现，
-**没有复用 `stages` 的阶段 DAG**。若要"一套架构统一所有数据形态"，这是当前最大的不一致点。
+量化已统一，但"简化 / 去重"类阶段仍各自独立：`vector` 的拓扑去重 + zigzag varint、
+`mesh` 的体素顶点聚类抽稀（保 UV）、`raster` 的栅格重采样——三者**都没有复用 `stages` 的阶段 DAG**。
+下一步若继续收拢，建议只把"几何抽稀"抽象成算子（网格与点云语义接近），
+矢量保留独立路径（拓扑约束与 varint 编码耦合紧，抽出来收益低）。

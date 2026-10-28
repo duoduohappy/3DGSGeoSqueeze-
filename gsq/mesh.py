@@ -17,6 +17,8 @@ import struct
 import numpy as np
 
 from .export import BIN_CHUNK, COMP, JSON_CHUNK, GLB_MAGIC
+from .quant import (MAX_U16, max_abs_error, normalized_decode, normalized_encode,
+                    normalized_step)
 from .tiles_in import _accessor, _glb_chunks, _node_matrix
 
 COMP_U4 = 5125
@@ -167,8 +169,34 @@ def decimate_mesh(pos: np.ndarray, idx: np.ndarray, uv: np.ndarray | None, ratio
 
 
 # ---------------- GLB 网格写出 ----------------
+def geom_bounds(prims: list[dict]) -> tuple[np.ndarray, float]:
+    """全部图元共享的量化包围盒：返回 (lo, extent)。
+
+    共用一套 lo/ext 是必要的——节点变换只有一组 translation/scale，
+    每图元各自归一化会让浏览端还原错位。
+    """
+    if not prims:
+        return np.zeros(3, np.float64), 1.0
+    allp = np.vstack([p["pos"] for p in prims])
+    lo = allp.min(0)
+    ext = float(max(allp.max(0) - lo)) or 1.0
+    return lo, ext
+
+
+def geom_quant_stats(prims: list[dict], lo: np.ndarray, ext: float, bits=16) -> dict:
+    """按实际编码器回算几何量化误差（与写出走同一码型，不是估算）。"""
+    lv = MAX_U16 if bits >= 16 else 2 ** bits - 1
+    err = 0.0
+    for p in prims:
+        pos = np.asarray(p["pos"], np.float64)
+        rec = normalized_decode(normalized_encode(pos, lo, ext, lv), lo, ext, lv)
+        err = max(err, max_abs_error(pos, rec))
+    return {"geom_quant_step": round(normalized_step(ext, lv), 8),
+            "geom_quant_max_err": round(err, 8), "geom_quant_bits": int(bits)}
+
+
 def _glb_mesh_bytes(prims: list[dict], images: list[tuple[bytes, str]], mats_tex: list[int | None],
-                    quantize=True) -> bytes:
+                    quantize=True, bounds: tuple | None = None) -> bytes:
     """组装带纹理的 glTF 三角网格 GLB（KHR_mesh_quantization u16 位置 + u16 UV）。"""
     data = bytearray()
     views: list[dict] = []
@@ -184,9 +212,7 @@ def _glb_mesh_bytes(prims: list[dict], images: list[tuple[bytes, str]], mats_tex
         views.append(v)
         return len(views) - 1
 
-    all_pos = np.vstack([p["pos"] for p in prims])
-    lo = all_pos.min(0)
-    ext = float(max(all_pos.max(0) - lo)) or 1.0
+    lo, ext = bounds if bounds else geom_bounds(prims)
     acc: list[dict] = []
     gprims = []
     node: dict = {"mesh": 0}
@@ -197,10 +223,10 @@ def _glb_mesh_bytes(prims: list[dict], images: list[tuple[bytes, str]], mats_tex
         pos = p["pos"]
         if quantize:
             # 每图元独立 POSITION 访问器（共享全局 lo/ext 量化网格，节点变换复原）
-            q = np.clip(np.round((pos - lo) / ext * 65535), 0, 65535).astype("<u2")
+            q = normalized_encode(pos, lo, ext).astype("<u2")
             vi = add(q.tobytes(), 34962)
             acc.append({"bufferView": vi, "componentType": 5123, "count": len(q), "type": "VEC3",
-                        "normalized": True, "min": [0, 0, 0], "max": [65535, 65535, 65535]})
+                        "normalized": True, "min": [0, 0, 0], "max": [MAX_U16, MAX_U16, MAX_U16]})
             ai = add(p["idx"].astype("<u4").tobytes(), 34963)
             acc.append({"bufferView": ai, "componentType": COMP_U4, "count": len(p["idx"]),
                         "type": "SCALAR"})
@@ -216,7 +242,7 @@ def _glb_mesh_bytes(prims: list[dict], images: list[tuple[bytes, str]], mats_tex
             attrs = {"POSITION": len(acc) - 2}
             ii = len(acc) - 1
         if p["uv"] is not None:
-            uq = np.clip(np.round(np.clip(p["uv"], 0, 1) * 65535), 0, 65535).astype("<u2")
+            uq = normalized_encode(np.clip(p["uv"], 0, 1), 0.0, 1.0).astype("<u2")
             ui = add(uq.tobytes(), 34962)
             acc.append({"bufferView": ui, "componentType": 5123, "count": len(uq), "type": "VEC2",
                         "normalized": True})
@@ -296,8 +322,12 @@ def compress_mesh_tile(mesh: dict, prune=0.0, tex_max_dim=1024, tex_quality=80,
         prims_out.append({"pos": pos, "idx": idx, "uv": uv, "mat": p["mat"]})
         v_out += len(pos)
         t_out += len(idx) // 3
-    allp = np.vstack([p["pos"] for p in prims_out]) if prims_out else np.zeros((0, 3))
-    step = float(max(allp.max(0) - allp.min(0))) / 65535 if (quantize and len(allp)) else 0.0
-    glb = _glb_mesh_bytes(prims_out, new_images, mats_tex, quantize)
-    return glb, {"verts_in": v_in, "verts_out": v_out, "tris_in": t_in, "tris_out": t_out,
-                 "tex": tex_info, "bytes": len(glb), "geom_quant_step": step}
+    lo, ext = geom_bounds(prims_out)
+    glb = _glb_mesh_bytes(prims_out, new_images, mats_tex, quantize, bounds=(lo, ext))
+    stats = {"verts_in": v_in, "verts_out": v_out, "tris_in": t_in, "tris_out": t_out,
+             "tex": tex_info, "bytes": len(glb)}
+    if quantize and prims_out:
+        stats.update(geom_quant_stats(prims_out, lo, ext))   # 统一量化口径（见 quant.py）
+    else:
+        stats.update({"geom_quant_step": 0.0, "geom_quant_max_err": 0.0, "geom_quant_bits": 0})
+    return glb, stats

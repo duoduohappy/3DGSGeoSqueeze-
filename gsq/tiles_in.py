@@ -398,7 +398,8 @@ def compress_tileset(src: str, out_dir: str, prune=0.5, pos_bits=16, method="vox
              "bytes_in": 0, "bytes_out": 0, "mesh_tiles": 0, "empty_tiles": 0,
              "ge_min": np.inf, "ge_max": 0.0, "pnts_out": 0,
              "mesh_out": 0, "verts_in": 0, "verts_out": 0, "tris_in": 0, "tris_out": 0,
-             "tex_in": 0, "tex_out": 0, "tex_psnr": [], "geom_step": 0.0}
+             "tex_in": 0, "tex_out": 0, "tex_psnr": [],
+             "geom_step": 0.0, "geom_err": 0.0}
     per_tile = []
     counter = [0]
 
@@ -451,6 +452,7 @@ def compress_tileset(src: str, out_dir: str, prune=0.5, pos_bits=16, method="vox
                     stats["tex_out"] += ti["bytes_out"]
                     stats["tex_psnr"].append(ti["psnr"])
                 stats["geom_step"] = max(stats["geom_step"], mi["geom_quant_step"])
+                stats["geom_err"] = max(stats["geom_err"], mi.get("geom_quant_max_err", 0.0))
                 n_out = mi["verts_out"]
                 content = {"uri": f"tiles/{os.path.basename(b)}", "boundingVolume": {"box": box}}
                 per_tile.append({"tile": tid, "src": full, "kind": "mesh",
@@ -578,6 +580,7 @@ def compress_tileset(src: str, out_dir: str, prune=0.5, pos_bits=16, method="vox
            "tex_psnr_min": round(min(ps), 2) if ps else None,
            "tex_psnr_mean": round(float(np.mean(ps)), 2) if ps else None,
            "geom_quant_step": round(stats["geom_step"], 6),
+           "geom_quant_max_err": round(stats["geom_err"], 6),
            "viewer": viewer, "cesium_page": cesium_page,
            "per_tile": per_tile}
     with open(os.path.join(out_dir, "meta", "tiles_report.json"), "w", encoding="utf-8") as f:
@@ -591,7 +594,8 @@ def compress_tileset(src: str, out_dir: str, prune=0.5, pos_bits=16, method="vox
                   f"(保留 {res['tri_keep']*100:.1f}%) · 纹理 {stats['tex_in']/1024:.0f}KB → "
                   f"{stats['tex_out']/1024:.0f}KB ({res['tex_ratio']}x) · "
                   f"纹理PSNR {res['tex_psnr_min']}~{res['tex_psnr_mean']}dB · "
-                  f"几何量化步长 {res['geom_quant_step']*1000:.2f}mm")
+                  f"几何量化 {res['geom_quant_step']*1000:.2f}mm 步长 / "
+                  f"{res['geom_quant_max_err']*1000:.2f}mm 最大误差")
     return res
 
 

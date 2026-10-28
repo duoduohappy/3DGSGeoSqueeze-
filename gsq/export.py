@@ -6,6 +6,7 @@ import os
 import struct
 import numpy as np
 from .ir import GeoScene, SH_C0
+from .quant import normalized_encode
 
 GLB_MAGIC, JSON_CHUNK, BIN_CHUNK = 0x46546C67, 0x4E4F534A, 0x004E4942
 
@@ -51,7 +52,7 @@ def write_glb(path: str, s: GeoScene, center: np.ndarray, extent: float, quantiz
     node = {"mesh": 0}
     if quantize_geometry and n:
         lo = center - extent / 2
-        q = np.clip(np.round((s.pos - lo) / max(extent, 1e-9) * 65535), 0, 65535).astype(np.uint16)
+        q = normalized_encode(s.pos, lo, max(extent, 1e-9)).astype(np.uint16)
         acc.append(_accessor(buf, q, "VEC3", normalized=True, minmax=True))
         node.update({"translation": [float(v) for v in lo], "scale": [float(extent)] * 3})
         ext_used = ["KHR_mesh_quantization"]
@@ -206,7 +207,7 @@ def write_pnts_q(path: str, pos: np.ndarray, rgb: np.ndarray) -> int:
     lo = pos.min(0)
     hi = pos.max(0)
     scale = np.maximum(hi - lo, 1e-6)
-    q = np.clip(np.round((pos - lo) / scale * 65535), 0, 65535).astype("<u2")
+    q = normalized_encode(pos, lo, scale).astype("<u2")
     n = len(pos)
     ftj = {"POINTS_LENGTH": n,
            "QUANTIZED_VOLUME_OFFSET": [float(v) for v in lo],

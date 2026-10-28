@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 from .ir import GeoScene, SH_C0, sh_basis
 from .analyze import significance
+from .quant import affine_decode, affine_encode, max_abs_error
 
 def _basis(d: np.ndarray, deg: int) -> np.ndarray:
     return sh_basis(d, min(deg, 3))
@@ -137,18 +138,7 @@ def distill(s: GeoScene, target_degree=1, preserve_mean=True, samples=32, **_) -
 
 
 # ---------------- 3. 量化 ----------------
-def _q_affine(x: np.ndarray, bits: int):
-    lo, hi = float(x.min()), float(x.max())
-    lv = 2 ** bits - 1
-    step = (hi - lo) / lv if hi > lo else 1e-8
-    q = np.clip(np.round((x - lo) / step), 0, lv).astype(np.uint16 if bits > 8 else np.uint8)
-    return q, lo, step
-
-
-def _dq_affine(q, lo, step):
-    return (q.astype(np.float32) * step + lo).astype(np.float32)
-
-
+# 编解码统一走 quant（见 gsq/quant.py）：affine 码型，反解 x = q·step + lo
 def _kmeans(x: np.ndarray, c: int, iters=8, seed=0) -> np.ndarray:
     rng = np.random.default_rng(seed)
     if len(x) <= c:
@@ -181,19 +171,6 @@ def _vq_encode(x: np.ndarray, c: int, seed=0):
     return codes, cb
 
 
-def _enc(x: np.ndarray, bits: int):
-    """affine 量化：float → (uint 数组, lo, step)。step 为 0 时视为常量。"""
-    lo, hi = float(x.min()), float(x.max())
-    lv = 2 ** bits - 1
-    step = (hi - lo) / lv if hi > lo else 0.0
-    q = np.round((x - lo) / step).clip(0, lv) if step else np.zeros(x.shape)
-    return q.astype(np.uint8 if bits <= 8 else np.uint16), lo, float(step)
-
-
-def _dec(q: np.ndarray, lo: float, step: float) -> np.ndarray:
-    return (q.astype(np.float32) * step + lo).astype(np.float32)
-
-
 def _rvq(x: np.ndarray, c: int, stages: int = 2, seed: int = 0):
     """残差级联 VQ（VecTree 思想的 CPU 等价）：逐级对残差建码本，重建 = Σ cb_i[code_i]。
 
@@ -223,19 +200,22 @@ def quantize(s: GeoScene, pos_bits=16, sh_bits=8, vq=True, codebook=256, method=
     method: None（自动：vq 布尔决定）/ "vq" / "vectree"（残差级联码本）/ "scalar"。
     """
     n, k = s.n, s.sh.shape[1]
-    tensors = []
+    tensors, errs = [], {}
 
     def affine(name, x, bits):
-        q, lo, st = _enc(x, bits)
+        q, lo, st = affine_encode(x, bits)
         tensors.append({"name": name, "arr": q, "lo": float(lo), "step": st})
-        return _dec(q, lo, st)
+        rec = affine_decode(q, lo, st)
+        errs[name] = round(max_abs_error(x, rec), 6)      # 统一误差口径（见 quant.py）
+        return rec
 
     pos = affine("pos", s.pos, pos_bits)
     opacity = affine("opacity", s.opacity, 8)
     scale = affine("scale", s.scale, 8)
     rot = affine("rot", s.rot, 8)
     sh_codec = s.codec.get("sh") if isinstance(s.codec, dict) else None
-    info = {"stage": "quantize", "pos_bits": pos_bits, "pos_mse": float(((pos - s.pos) ** 2).mean())}
+    info = {"stage": "quantize", "pos_bits": pos_bits, "pos_mse": float(((pos - s.pos) ** 2).mean()),
+            "pos_max_err": errs["pos"]}
 
     if sh_codec and sh_codec.get("mode") == "lowrank":
         # 低秩因子已存在（由 lowrank 阶段产出），此处只做 fp16 存储，不再二次量化
@@ -272,9 +252,9 @@ def quantize(s: GeoScene, pos_bits=16, sh_bits=8, vq=True, codebook=256, method=
                      "sh_mse": float(((sh - s.sh) ** 2).mean())})
     else:
         flat = s.sh.reshape(n, -1)
-        q, lo, st = _enc(flat, sh_bits)
+        q, lo, st = affine_encode(flat, sh_bits)
         tensors.append({"name": "sh.q", "arr": q, "lo": lo, "step": st})
-        sh = _dec(q, lo, st).reshape(n, k, 3)
+        sh = affine_decode(q, lo, st).reshape(n, k, 3)
         info.update({"sh_mode": "scalar", "sh_bits": sh_bits,
                      "sh_mse": float(((sh - s.sh) ** 2).mean())})
 
@@ -282,12 +262,13 @@ def quantize(s: GeoScene, pos_bits=16, sh_bits=8, vq=True, codebook=256, method=
     out = GeoScene(pos, sh, opacity, scale, rot, s.kind, dict(s.meta),
                    {"tensors": tensors, "sh_mode": info["sh_mode"], "sh_shape": [k, 3]})
     info["payload_bytes"] = payload
+    info["max_err"] = errs                                 # 逐属性最大绝对误差（m / 无量纲）
     return out, info
 
 
 def _reconstruct_lowrank(c: dict, n: int, k: int) -> np.ndarray:
-    u = _dec(c["u"], c["u_lo"], c["u_step"])
-    vt = _dec(c["vt"], c["vt_lo"], c["vt_step"])
+    u = affine_decode(c["u"], c["u_lo"], c["u_step"])
+    vt = affine_decode(c["vt"], c["vt_lo"], c["vt_step"])
     sv = c["s"].astype(np.float32)
     mu = c["mu"].astype(np.float32)
     return ((u * sv) @ vt + mu).reshape(n, k, 3).astype(np.float32)
@@ -307,9 +288,9 @@ def lowrank(s: GeoScene, energy=0.995, min_rank=2, bits=8, **_) -> tuple[GeoScen
     r = int(max(min_rank, min(len(sv), np.searchsorted(cum, energy) + 1)))
     u, sv, vt = u[:, :r], sv[:r], vt[:r]
 
-    uq, u_lo, u_st = _enc(u, bits)
-    tq, t_lo, t_st = _enc(vt, bits)
-    uf, tf = _dec(uq, u_lo, u_st), _dec(tq, t_lo, t_st)
+    uq, u_lo, u_st = affine_encode(u, bits)
+    tq, t_lo, t_st = affine_encode(vt, bits)
+    uf, tf = affine_decode(uq, u_lo, u_st), affine_decode(tq, t_lo, t_st)
     rec = ((uf * sv) @ tf + mu).astype(np.float32)
     codec = {"mode": "lowrank", "rank": r, "bits": bits,
              "u": uq, "u_lo": u_lo, "u_step": u_st,
