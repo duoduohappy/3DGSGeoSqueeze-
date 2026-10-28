@@ -490,8 +490,11 @@ def make_sample(n_ground=120, n_box=28, seed=7) -> GeoScene:
 
 # ---------------- 空间索引 ----------------
 def voxel_keys(pos: np.ndarray, voxel: float, origin=None):
-    lo = pos.min(0) if origin is None else np.asarray(origin, np.float32)
-    idx = np.floor((pos - lo) / max(voxel, 1e-9)).astype(np.int64)
+    """体素坐标 → (打包键, 三维格号)。``origin`` 保持传入精度（不降 float32，
+    否则 ECEF 量级下原点误差可达米级、体素归属会漂移）。"""
+    pos = np.asarray(pos)
+    lo = pos.min(0) if origin is None else np.asarray(origin)
+    idx = np.floor((pos - lo) / max(float(voxel), 1e-9)).astype(np.int64)
     span = idx.max(0) + 1
     key = (idx[:, 0] * span[1] + idx[:, 1]) * span[2] + idx[:, 2]
     return key, idx

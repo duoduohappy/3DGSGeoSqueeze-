@@ -5,6 +5,7 @@ import json
 import os
 import struct
 import numpy as np
+from .decimate import decimate_lod_points
 from .ir import GeoScene, SH_C0
 from .quant import normalized_encode
 
@@ -118,12 +119,14 @@ def write_glb(path: str, s: GeoScene, center: np.ndarray, extent: float, quantiz
 
 # ---------------- LOD + 3D Tiles ----------------
 def _decimate(idx: np.ndarray, s: GeoScene, vox: float) -> np.ndarray:
+    """LOD 点抽稀：体素划分与网格/点云通道共用（`decimate.decimate_lod_points`）。
+
+    每体素取顺序最早的点，再按「不透明度 × 尺度」排序——LOD 层要的是稳定的代表点，
+    不追求目标点数（体素边长由层级给定）。
+    """
     if len(idx) == 0:
         return idx
-    p = s.pos[idx]
-    key = np.floor((p - p.min(0)) / max(vox, 1e-9)).astype(np.int64)
-    _, first = np.unique(key, axis=0, return_index=True)
-    sel = idx[np.sort(first)]
+    sel = decimate_lod_points(idx, s.pos, vox)
     order = np.argsort(-(s.opacity[sel] * np.cbrt(np.prod(s.scale[sel], 1))))
     return sel[order]
 

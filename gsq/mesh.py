@@ -16,6 +16,7 @@ import struct
 
 import numpy as np
 
+from .decimate import decimate_vertices
 from .export import BIN_CHUNK, COMP, JSON_CHUNK, GLB_MAGIC
 from .quant import (MAX_U16, max_abs_error, normalized_decode, normalized_encode,
                     normalized_step)
@@ -122,50 +123,17 @@ def read_mesh_content(path: str) -> dict:
 
 
 # ---------------- 网格抽稀（体素聚类，保 UV） ----------------
-def decimate_mesh(pos: np.ndarray, idx: np.ndarray, uv: np.ndarray | None, ratio: float) -> tuple:
+def decimate_mesh(pos: np.ndarray, idx: np.ndarray, uv: np.ndarray | None, ratio: float,
+                  *, min_kept_ratio: float = 0.4) -> tuple:
     """顶点体素聚类抽稀：簇内位置/UV 取均值，重建连接；退化三角形剔除。
 
-    质量守卫：体素由细到粗渐进，若粗到引起大面积退化（>60% 三角形失效）则停在上一档，
-    宁可少抽不毁几何；任何情况下不会抽空。
+    实现见 `decimate.decimate_vertices`——与点云体素下采样共用同一体素划分，
+    差异只在「每簇留质心（网格重建顶点）还是留最近真实点（点云保采样）」。
+    质量守卫：若更粗一档会让保留三角形跌破 ``min_kept_ratio``，停在上一档
+    （宁可少抽不毁几何）；任何情况下不会抽空。
     """
-    n = len(pos)
-    if ratio <= 0 or n == 0:
-        return pos, idx, uv
-    target = max(8, int(n * (1.0 - min(ratio, 0.98))))
-    lo = pos.min(0)
-    ext = float(max(pos.max(0) - lo)) or 1.0
-    tris0 = len(idx) // 3
-    best = (pos, idx, uv)
-    vox = ext / 128.0
-    for _ in range(24):
-        key = np.floor((pos - lo) / max(vox, 1e-12)).astype(np.int64)
-        uk, inv = np.unique(key, axis=0, return_inverse=True)
-        inv = np.asarray(inv).ravel()
-        if len(uk) >= n:                                 # 该档无合并空间 → 加粗重试
-            vox *= 1.6
-            continue
-        new_pos = np.zeros((len(uk), 3), np.float64)
-        cnt = np.zeros(len(uk), np.float64)
-        np.add.at(new_pos, inv, pos)
-        np.add.at(cnt, inv, 1)
-        new_pos /= np.maximum(cnt, 1)[:, None]
-        new_uv = None
-        if uv is not None:
-            new_uv = np.zeros((len(uk), 2), np.float32)
-            np.add.at(new_uv, inv, uv)
-            new_uv /= np.maximum(cnt, 1)[:, None].astype(np.float32)
-        tri = inv[idx.reshape(-1, 3)]
-        a, b, c = tri[:, 0], tri[:, 1], tri[:, 2]
-        kept_idx = tri[(a != b) & (b != c) & (a != c)].ravel()
-        if len(kept_idx) < 9:                            # 兜底：不许抽空
-            break
-        if len(uk) <= target:
-            if len(kept_idx) >= tris0 * 3 * 0.4:
-                best = (new_pos, kept_idx, new_uv)       # 达标且退化可控
-            break                                        # 否则停在上一档（宁少抽不毁几何）
-        best = (new_pos, kept_idx, new_uv)
-        vox *= 1.6
-    return best
+    p, i, u, _info = decimate_vertices(pos, idx, uv, ratio, min_kept_ratio=min_kept_ratio)
+    return p, i, u
 
 
 # ---------------- GLB 网格写出 ----------------

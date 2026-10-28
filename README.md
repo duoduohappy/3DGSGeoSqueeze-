@@ -108,6 +108,13 @@ python -m gsq compress data/tile.las -o out --platform mobile
 所有通道共用同一误差定义：**理论界 = step/2，实际可达界 = step/2 + 4 ULP(量级)**。
 网格与 pnts 的量化误差由编码器回算后报告（`geom_quant_max_err`），不再按整格粗估。
 
+**抽稀算子统一**（`gsq/decimate.py`）：点云体素下采样与网格顶点聚类共用同一体素划分
+（`voxel_partition` → `ir.voxel_keys`）、簇均值（`cluster_means`）、每簇代表选择
+（`first_per_cluster` / `nearest_to_centroid`）与退化面剔除（`collapse_triangles`）。
+差异只在「每簇留什么」：点云留**离质心最近的真实采样点**（不造坐标），网格留**质心**
+（新顶点，UV 同步取均值）。同一批点 + 同一体素边长，两条通道得出**完全相同的簇**，
+所以「体素抽稀」在各产物里是同一件事，指标可直接横向比较。
+
 ### 模型线：ONNX 任务模型压缩（H3DNAS 路线）
 
 `gsq compress-model model.onnx -o out_model --ratio 0.4`——无需训练源码，直接图手术：

@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 from .ir import GeoScene, SH_C0, sh_basis
 from .analyze import significance
+from .decimate import cluster_means, decimate_points, voxel_partition
 from .quant import affine_decode, affine_encode, max_abs_error
 
 def _basis(d: np.ndarray, deg: int) -> np.ndarray:
@@ -46,75 +47,61 @@ def _merge_prune(s: GeoScene, keep_n: int) -> tuple[GeoScene, dict]:
     score = significance(s)
     lo, hi = s.bounds()
     vox = max(float(np.max(hi - lo)) / 128.0, 1e-6)
-    key = np.floor((s.pos - lo) / vox).astype(np.int64)
+    inv, _ = voxel_partition(s.pos, vox, lo)              # 与网格抽稀共用体素划分（decimate.py）
     order = np.argsort(-score)                            # 显著性高者作合并种子
     keep_mask = np.ones(s.n, bool)
     merged = 0
     q = s.rot / np.maximum(np.linalg.norm(s.rot, axis=1, keepdims=True), 1e-9)
     rad = np.cbrt(np.maximum(np.prod(s.scale, axis=1), 1e-12))
+    # 合并在副本上进行：本阶段不可原地改写入参场景（否则质量门禁下一轮从"已改动"的原始场景重跑）
+    pos, sh0 = s.pos.copy(), s.sh[:, 0, :].copy()
+    scale, opacity = s.scale.copy(), s.opacity.copy()
     for i in order:
         if not keep_mask[i]:
             continue
-        same_cell = (key[:, 0] == key[i, 0]) & (key[:, 1] == key[i, 1]) & (key[:, 2] == key[i, 2])
-        cand = np.where(same_cell & keep_mask & (np.arange(s.n) != i))[0]
+        cand = np.where((inv == inv[i]) & keep_mask & (np.arange(s.n) != i))[0]
         if not len(cand):
             continue
         dq = np.abs(q[cand] @ q[i])                           # 四元数点积（|dot|≈1 即同向）
-        near = cand[(dq > 0.95) & (np.linalg.norm(s.pos[cand] - s.pos[i], axis=1) < 2.0 * rad[i])]
+        near = cand[(dq > 0.95) & (np.linalg.norm(pos[cand] - pos[i], axis=1) < 2.0 * rad[i])]
         if not len(near):
             continue
         grp = np.concatenate([[i], near])
-        o = s.opacity[grp][:, None]
+        o = opacity[grp][:, None]
         w = o / o.sum()
-        s.pos[i] = (s.pos[grp] * w).sum(0)
-        s.sh[i, 0, :] = (s.sh[grp, 0, :] * w).sum(0)
+        pos[i] = (pos[grp] * w).sum(0)
+        sh0[i] = (sh0[grp] * w).sum(0)
         # 覆盖扩大：群体越大尺度越大；不透明度取联合覆盖概率
-        s.scale[i] = np.maximum(s.scale[i] * (1 + 0.25 * len(grp)), s.scale[grp].max(0) * 0.8)
-        s.opacity[i] = float(1.0 - np.prod(1.0 - s.opacity[grp]))
+        scale[i] = np.maximum(scale[i] * (1 + 0.25 * len(grp)), scale[grp].max(0) * 0.8)
+        opacity[i] = float(1.0 - np.prod(1.0 - opacity[grp]))
         keep_mask[near] = False
         merged += len(near)
         if keep_mask.sum() <= keep_n:
             break
     idx = np.sort(np.where(keep_mask)[0])
-    out = s.subset(idx)
+    out = GeoScene(pos[idx], s.sh[idx], opacity[idx], scale[idx], s.rot[idx],
+                   s.kind, dict(s.meta))
+    out.sh[:, 0, :] = sh0[idx]                            # subset 已拷贝，直接写回合并后的 DC
     return out, {"stage": "prune", "method": "merge", "kept": int(out.n),
                  "absorbed": int(merged), "target": int(keep_n)}
 
 
 def _voxel_downsample(s: GeoScene, keep_n: int) -> tuple[GeoScene, dict]:
-    """点云体素下采样：按目标点数反推体素边长，每体素保留最接近质心的点，颜色取体素均值（降噪）。"""
-    lo, hi = s.bounds()
-    ext = float(np.max(hi - lo)) or 1.0
-    vox = ext / 64.0
-    key = inv = None
-    for _ in range(24):
-        key = np.floor((s.pos - lo) / vox).astype(np.int64)
-        _, inv = np.unique(key, axis=0, return_inverse=True)
-        cnt = int(inv.max()) + 1
-        if abs(cnt - keep_n) <= max(8, 0.02 * keep_n):
-            break
-        vox *= (cnt / max(keep_n, 1)) ** (1.0 / 3.0)
-    inv = inv.ravel()
-    m = int(inv.max()) + 1
-    c = np.bincount(inv, minlength=m).astype(np.float32)
-    cen = np.zeros((m, 3), np.float64)
-    np.add.at(cen, inv, s.pos)
-    cen /= np.maximum(c, 1)[:, None]
-    dist = ((s.pos - cen[inv]) ** 2).sum(1)
-    order = np.lexsort((dist, inv))                       # 体素内按距质心升序
-    first = np.ones(len(order), bool)
-    first[1:] = inv[order][1:] != inv[order][:-1]
-    idx = np.sort(order[first])
+    """点云体素下采样（体素划分与网格抽稀共用 `decimate` 算子）。
 
-    dc = s.sh[:, 0, :]
-    avg = np.zeros((m, 3), np.float64)
-    np.add.at(avg, inv, dc)
-    avg /= np.maximum(c, 1)[:, None]
-    sub = s.subset(idx)
+    每体素保留最接近质心的**真实采样点**（不引入人造坐标），DC 颜色取体素均值降噪。
+    """
+    res = decimate_points(s.pos, keep_n)
+    inv, count, keep = res["inv"], res["count"], res["keep"]
+    if len(keep) == 0:
+        return s, {"stage": "prune", "method": "voxel", "kept": s.n, "voxel": 0.0,
+                   "occupied_voxels": 0, "levels": 0}
+    sub = s.subset(keep)
     sub.sh = sub.sh.copy()
-    sub.sh[:, 0, :] = avg[inv[idx]].astype(np.float32)     # 体素平均色，抑制噪声
-    return sub, {"stage": "prune", "method": "voxel", "kept": int(len(idx)),
-                 "voxel": round(float(vox), 5), "occupied_voxels": int(m)}
+    sub.sh[:, 0, :] = cluster_means(s.sh[:, 0, :], inv, count)[inv[keep]]   # 体素平均色，抑制噪声
+    return sub, {"stage": "prune", "method": "voxel", "kept": int(len(keep)),
+                 "voxel": round(float(res["voxel"]), 5), "occupied_voxels": int(len(count)),
+                 "levels": int(res["levels"])}
 
 
 # ---------------- 2. 蒸馏（SH 截断 + 能量补偿） ----------------

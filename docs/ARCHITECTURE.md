@@ -53,11 +53,11 @@ flowchart TB
 
 ## 模块分层
 
-`gsq` 包共 22 个模块 7,171 行：
+`gsq` 包共 23 个模块 7,318 行：
 
 | 分组 | 模块 | 职责 |
 |---|---|---|
-| 核心流水线 | `ir` `quant` `analyze` `stages` `pipeline` `export` | 中间表示、**统一量化码型与误差上界**、画像与配方、阶段算子、编排与 checkpoint、导出与评测 |
+| 核心流水线 | `ir` `quant` `decimate` `analyze` `stages` `pipeline` `export` | 中间表示、**统一量化码型与误差上界**、**统一抽稀算子（体素划分/簇聚合/退化面剔除）**、画像与配方、阶段算子、编排与 checkpoint、导出与评测 |
 | 摄取适配 | `tiles_in` `vector` `mesh` `raster` `samples` | 已有 3D Tiles / 矢量 / 网格 / 栅格读入，合成样例 |
 | 交付与验证 | `viewer` `cesium_viewer` `vec_viewer` `mesh_viewer` `testbench` | 自包含 WebGL 查看器、Cesium 查看器、数据源测试工作台 |
 | 旁路与入口 | `model` `spz` `cli` `render` | ONNX 压缩、SPZ 编解码、命令行、渲染辅助 |
@@ -105,9 +105,28 @@ flowchart TB
 （`practical_bound`，编码期减法与解码期回代各 ≤2 ULP）。此前网格侧只报 `step`，
 等于把实际误差说大一倍（120 m 瓦片实测 0.9 mm 而非 1.8 mm）。
 
+## 抽稀口径（跨通道统一）
+
+`gsq/decimate.py` 收口了此前两套独立实现的体素抽稀。差异**只在「每簇留下什么」**：
+
+| 通道 | 每簇保留 | 后续处理 | 质量守卫 |
+|---|---|---|---|
+| 点云（`decimate_points`） | 离质心最近的**真实采样点** | DC 颜色取簇均值降噪 | 簇数容差 `max(8, 2%)` |
+| 网格（`decimate_vertices`） | 簇**质心**（新顶点） | 索引重映射 + 剔除退化面 | 保留三角形 ≥ `min_kept_ratio`，否则退上一档 |
+| LOD 点（`decimate_lod_points`） | 顺序最早 / 优先级最优者 | 层内按不透明度×尺度排序 | 无（体素边长由层级给定） |
+
+共享原语：`voxel_partition`（复用 `ir.voxel_keys` 的空间索引）、`cluster_means`、
+`first_per_cluster` / `nearest_to_centroid`、`collapse_triangles`。
+
+**跨通道一致性**：同一批点 + 同一体素边长，点云与网格通道得到**完全相同的簇划分**，
+因此"体素抽稀"在两个产物里是同一件事，指标可直接横向比较。
+
+**origin 精度**：`voxel_keys` 的 `origin` 保持传入精度（不再降 float32）。ECEF 量级
+（6e6 m）下 float32 原点误差可达米级——实测 5000 点中 1617 点会落到错误体素，
+抽稀结果与量化产物都会随之漂移。
+
 ## 尚未收拢的地方
 
-量化已统一，但"简化 / 去重"类阶段仍各自独立：`vector` 的拓扑去重 + zigzag varint、
-`mesh` 的体素顶点聚类抽稀（保 UV）、`raster` 的栅格重采样——三者**都没有复用 `stages` 的阶段 DAG**。
-下一步若继续收拢，建议只把"几何抽稀"抽象成算子（网格与点云语义接近），
-矢量保留独立路径（拓扑约束与 varint 编码耦合紧，抽出来收益低）。
+抽稀与量化已统一，但仍有两处独立实现：`vector` 的拓扑去重 + zigzag varint、
+`raster` 的栅格重采样——**没有复用 `stages` 的阶段 DAG**，也刻意不在本轮收拢：
+矢量的拓扑约束与 varint 编码耦合紧，抽成公共算子收益低于风险（且 `test_city` 回归覆盖它）。
