@@ -19,8 +19,10 @@ def prune(s: GeoScene, ratio=0.7, method="significance", **_) -> tuple[GeoScene,
     keep_n = max(16, int(round(s.n * (1 - ratio))))
     if keep_n >= s.n:
         return s, {"stage": "prune", "ratio": 0.0, "kept": s.n}
-    if method == "voxel" or (s.kind == "point" and method not in ("render", "significance")):
+    if method == "voxel" or (s.kind == "point" and method not in ("render", "significance", "merge")):
         return _voxel_downsample(s, keep_n)
+    if method == "merge":
+        return _merge_prune(s, keep_n)
     if method == "render":
         from .analyze import significance_render
         score = significance_render(s)
@@ -31,6 +33,51 @@ def prune(s: GeoScene, ratio=0.7, method="significance", **_) -> tuple[GeoScene,
     idx = np.argpartition(-score, keep_n - 1)[:keep_n]
     return s.subset(np.sort(idx)), {"stage": "prune", "ratio": ratio, "kept": int(keep_n),
                                     "method": method, "score_cut": float(score[idx].min())}
+
+
+def _merge_prune(s: GeoScene, keep_n: int) -> tuple[GeoScene, dict]:
+    """合并吸收剪枝（设计 §5.1 merge）：同体素内旋转相近、中心邻近的高斯并为一个更大高斯。
+
+    数量下降但覆盖不丢：pos/DC 颜色按不透明度加权平均，scale 取加权均值 + 群体离散度，
+    opacity 取 1-∏(1-o)（联合覆盖概率），rot 保留显著性最高的成员。
+    """
+    from .analyze import significance
+    score = significance(s)
+    lo, hi = s.bounds()
+    vox = max(float(np.max(hi - lo)) / 128.0, 1e-6)
+    key = np.floor((s.pos - lo) / vox).astype(np.int64)
+    order = np.argsort(-score)                            # 显著性高者作合并种子
+    keep_mask = np.ones(s.n, bool)
+    merged = 0
+    q = s.rot / np.maximum(np.linalg.norm(s.rot, axis=1, keepdims=True), 1e-9)
+    rad = np.cbrt(np.maximum(np.prod(s.scale, axis=1), 1e-12))
+    for i in order:
+        if not keep_mask[i]:
+            continue
+        same_cell = (key[:, 0] == key[i, 0]) & (key[:, 1] == key[i, 1]) & (key[:, 2] == key[i, 2])
+        cand = np.where(same_cell & keep_mask & (np.arange(s.n) != i))[0]
+        if not len(cand):
+            continue
+        dq = np.abs(q[cand] @ q[i])                           # 四元数点积（|dot|≈1 即同向）
+        near = cand[(dq > 0.95) & (np.linalg.norm(s.pos[cand] - s.pos[i], axis=1) < 2.0 * rad[i])]
+        if not len(near):
+            continue
+        grp = np.concatenate([[i], near])
+        o = s.opacity[grp][:, None]
+        w = o / o.sum()
+        s.pos[i] = (s.pos[grp] * w).sum(0)
+        s.sh[i, 0, :] = (s.sh[grp, 0, :] * w).sum(0)
+        # 覆盖扩大：群体越大尺度越大；不透明度取联合覆盖概率
+        s.scale[i] = np.maximum(s.scale[i] * (1 + 0.25 * len(grp)), s.scale[grp].max(0) * 0.8)
+        s.opacity[i] = float(1.0 - np.prod(1.0 - s.opacity[grp]))
+        keep_mask[near] = False
+        merged += len(near)
+        if keep_mask.sum() <= keep_n:
+            break
+    idx = np.sort(np.where(keep_mask)[0])
+    out = s.subset(idx)
+    return out, {"stage": "prune", "method": "merge", "kept": int(out.n),
+                 "absorbed": int(merged), "target": int(keep_n)}
 
 
 def _voxel_downsample(s: GeoScene, keep_n: int) -> tuple[GeoScene, dict]:
@@ -147,8 +194,34 @@ def _dec(q: np.ndarray, lo: float, step: float) -> np.ndarray:
     return (q.astype(np.float32) * step + lo).astype(np.float32)
 
 
-def quantize(s: GeoScene, pos_bits=16, sh_bits=8, vq=True, codebook=256, **_) -> tuple[GeoScene, dict]:
-    """真实量化：产出 codec（整型张量 + 反量化参数），产物按 codec 落盘，不再是 float32 转储。"""
+def _rvq(x: np.ndarray, c: int, stages: int = 2, seed: int = 0):
+    """残差级联 VQ（VecTree 思想的 CPU 等价）：逐级对残差建码本，重建 = Σ cb_i[code_i]。
+
+    高维 SH 下比单级 VQ 每字节误差更低；每级固定 c 个码字，代价 = stages 字节/基元。
+    """
+    codes, cbs = [], []
+    resid = x.astype(np.float32)
+    for lv in range(stages):
+        rng = np.random.default_rng(seed + lv)
+        samp = resid if len(resid) <= 4096 else resid[rng.choice(len(resid), 4096, replace=False)]
+        cb = _kmeans(samp, c, seed=seed + lv)
+        lab = np.empty(len(resid), np.uint8 if c <= 256 else np.uint16)
+        for i in range(0, len(resid), 4096):
+            blk = resid[i:i + 4096]
+            lab[i:i + 4096] = ((blk[:, None, :] - cb[None]) ** 2).sum(-1).argmin(1)
+        codes.append(lab)
+        cbs.append(cb.astype(np.float32))
+        resid = resid - cb[lab]
+    recon = np.sum([cb[lab] for cb, lab in zip(cbs, codes)], axis=0)
+    return codes, cbs, recon
+
+
+def quantize(s: GeoScene, pos_bits=16, sh_bits=8, vq=True, codebook=256, method=None,
+             **_) -> tuple[GeoScene, dict]:
+    """真实量化：产出 codec（整型张量 + 反量化参数），产物按 codec 落盘，不再是 float32 转储。
+
+    method: None（自动：vq 布尔决定）/ "vq" / "vectree"（残差级联码本）/ "scalar"。
+    """
     n, k = s.n, s.sh.shape[1]
     tensors = []
 
@@ -174,6 +247,16 @@ def quantize(s: GeoScene, pos_bits=16, sh_bits=8, vq=True, codebook=256, **_) ->
         tensors.append({"name": "sh.mu", "arr": sh_codec["mu"]})
         sh = _reconstruct_lowrank(sh_codec, n, k)
         info.update({"sh_mode": "lowrank", "rank": int(sh_codec["rank"])})
+    elif method == "vectree":
+        x = s.sh.reshape(n, -1)
+        stages = 2 if x.shape[1] <= 24 else 3               # 维度越高残差级数越多
+        codes, cbs, recon = _rvq(x, min(codebook, max(16, n // 4)), stages=stages)
+        sh = recon.reshape(n, k, 3).astype(np.float32)
+        tensors.append({"name": "sh.codes", "arr": np.stack(codes, 1)})
+        for lv, cb in enumerate(cbs):
+            tensors.append({"name": f"sh.cb{lv}", "arr": cb.astype(np.float16)})
+        info.update({"sh_mode": "vectree", "codebook": int(len(cbs[0])), "rvq_stages": stages,
+                     "sh_mse": float(((sh - s.sh) ** 2).mean())})
     elif vq:
         x = s.sh.reshape(n, -1)
         rng = np.random.default_rng(0)

@@ -100,6 +100,67 @@ class GeoScene:
 
 
 # ---------------- PLY ----------------
+def read_csv(path: str, has_header: bool | None = None) -> GeoScene:
+    """CSV/XYZ 点云 → GeoScene（kind=point）。
+
+    列自动识别：x/y/z（大小写不敏感）优先，否则取前 3 个数值列；
+    可选 r,g,b（0-255）→ DC 颜色，可选 i（强度）并入颜色亮度。
+    """
+    import csv as _csv
+    rows = []
+    with open(path, "r", encoding="utf-8-sig", newline="") as f:
+        for rec in _csv.reader(f):
+            if not rec or all(not c.strip() for c in rec):
+                continue
+            rows.append([c.strip() for c in rec])
+    if not rows:
+        raise ValueError(f"CSV 为空：{path}")
+    header = None
+    if has_header is None:
+        try:
+            [float(v) for v in rows[0][:3]]
+        except ValueError:
+            header = rows.pop(0)
+    elif has_header:
+        header = rows.pop(0)
+    if not rows:
+        raise ValueError(f"CSV 只有表头没有数据：{path}")
+    data = np.array([[float(v) for v in r] for r in rows], np.float64)
+    if data.shape[1] < 3:
+        raise ValueError(f"CSV 至少需要 x,y,z 三列：{path}")
+    xi = yi = zi = None
+    if header:
+        low = [h.lower() for h in header]
+        for i, h in enumerate(low):
+            if h in ("x", "px") and xi is None:
+                xi = i
+            elif h in ("y", "py") and yi is None:
+                yi = i
+            elif h in ("z", "pz") and zi is None:
+                zi = i
+    if xi is None:                                  # 无表头或未识别 → 前 3 列
+        xi, yi, zi = 0, 1, 2
+    pos = data[:, [xi, yi, zi]].astype(np.float32)
+    n = len(pos)
+    sh = np.zeros((n, 1, 3), np.float32)
+    ci = None
+    if header:
+        low = [h.lower() for h in header]
+        ci = [low.index(c) for c in ("r", "g", "b") if c in low] or None
+        if ci and len(ci) == 3 and max(ci) < data.shape[1]:
+            sh[:, 0, :] = (data[:, ci] / 255.0 - 0.5) / SH_C0
+        else:
+            ci = None
+    if ci is None:
+        sh[:, 0, :] = (0.5 - 0.5) / SH_C0           # 默认中灰
+    lo, hi = pos.min(0), pos.max(0)
+    ext = float(np.max(hi - lo)) or 1.0
+    scale = np.full((n, 3), ext / 512.0, np.float32)
+    return GeoScene(pos, sh, np.ones(n, np.float32), scale,
+                    np.tile([1.0, 0, 0, 0], (n, 1)).astype(np.float32),
+                    "point", {"source": os.path.basename(path), "sh_degree": 0})
+
+
 def read_ply(path: str) -> GeoScene:
     with open(path, "rb") as f:
         raw = f.read()

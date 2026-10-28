@@ -61,6 +61,9 @@ GeoJSON → **Douglas–Peucker 简化 → 坐标整型化（4096 网格，同 M
 | `.las` | ✅ 完整 | LAS 1.0~1.4，点格式 **0~10** 全覆盖；按头部 `scale/offset` 反算世界坐标；RGB 自动识别 8/16 位；无颜色时按高程着色；记录分类统计与点间距 |
 | `.laz` | ⚠️ 需外部解码器 | 纯 Python 无法解 LASzip 算术编码。检测到 `laszip`/`pdal` 在 PATH 时自动解压；否则给出可操作提示（非崩溃） |
 | `.gsq` | ✅ 完整 | 本工具产出的紧凑容器，可直接作为输入继续压缩 |
+| `.spz` | ✅ 完整 | Niantic SPZ v2 写出（legacy gzip 格式，官方读取器 v1-3 兼容）+ v2/v3 读取；v4（ZSTD 多流）读取明确报错。大坐标自动居中，偏移量存 gzip 注释字段 |
+| `.splat` | ✅ 读取 | antimatter15 32 字节/点格式（pos/scale f32 + RGBA u8 + 四元数 u8） |
+| `.csv` | ✅ 读取 | x/y/z（大小写不敏感，无表头取前 3 数值列）+ 可选 r,g,b（0-255）→ 点基元进管线 |
 
 > 已用真实数据验证：laspy 测试集中的 `autzen.las`（1.2 / 格式 1 / 106 点 / 州平面坐标 635k）、
 > `1_4_w_evlr.las`（1.4 / 格式 6 / 1000 点 / EVLR）。
@@ -93,10 +96,30 @@ python -m gsq compress data/tile.las -o out --platform mobile
 | **prune 剪枝** | 渲染显著性（LightGaussian global significance 等价）/ 几何代理 / 点云体素下采样 | 渲染打分比几何代理 **+5.5 dB**（A/B 实测） |
 | **distill 蒸馏** | SH 降阶 + 方向采样能量补偿；效果由**视角相关 SH 渲染**评测真实反映 | SH 基函数与 diff-gaussian-rasterization 数值一致 |
 | **recover 恢复微调** | 以原图渲染为监督，残差按合成权重回传 SH DC（渲染对颜色线性 → Jacobi 迭代），覆盖过滤防白噪，可选 grow 填空洞 | 25.93 → 26.73 dB（+0.8） |
-| **quantize 量化** | 位置 8-16bit affine + SH 向量量化（k-means 码本）/ 标量 / 因子化 | 产物是**真实整型编码**，不再是 float32 转储 |
+| **quantize 量化** | 位置 8-16bit affine + SH 向量量化（k-means 码本）/ **vectree 残差级联码本** / 标量 / 因子化 | 产物是**真实整型编码**，不再是 float32 转储 |
 | **lowrank 低秩** | SH 矩阵 SVD → U·diag(S)·Vᵀ+μ，因子 **int8 量化**存储 | 由编码代价模型决策（见下） |
 
 **编码代价模型**：VQ 每基元 1 字节 vs 低秩每基元 rank 字节——对标准 3DGS（SH≤16 系数）低秩必然不划算，planner 自动选 VQ；高维 SH（如 64 系数）且有真实低秩结构时自动切低秩。盲开低秩会让产物大 5 倍（实测教训）。
+
+### 模型线：ONNX 任务模型压缩（H3DNAS 路线）
+
+`gsq compress-model model.onnx -o out_model --ratio 0.4`——无需训练源码，直接图手术：
+
+| 步骤 | 实现 | 边界 |
+|---|---|---|
+| CDG 分析 | 通道依赖图：从每个 Conv 沿 passthrough 链（BN/Relu/MaxPool/…）找终点消费者，判定可剪层与理论压缩上限 | `gsq compress-model --no-quantize --no-validate` 只出分析 |
+| 结构化剪枝 | filter L1 top-k 保留 → 同步切边：下游 Conv 输入列 / BN 统计量 / Gemm 行列；终点不可适配（Reshape/Add/Concat 等）整层放弃 | 输出图永远可加载（onnx.checker 校验） |
+| INT8 量化 | onnxruntime 动态量化；**transB=1 的 Gemm 先规范化**（ort 量化器不转置权重，直接量化产出维度不匹配的 MatMulInteger——已修复） | 权重 INT8、激活动态范围 |
+| 对拍验证 | 随机输入前向余弦相似度 + 时延（压缩前 vs 后） | 小网络上 0.4 比例剪枝 cosine ≈ 0.87，可调低 ratio |
+
+### Checkpoint 断点续跑（设计 §5）
+
+每阶段完成自动落盘 `out/.gsq/ckpt/`（场景 .gsq + 配方清单 + 输入指纹）：
+
+```bash
+python -m gsq compress big.ply -o out ... --resume   # 中断后从最近 checkpoint 继续
+python -m gsq rerun-stage out quantize --baseline big.ply   # 单阶段独立重跑
+```
 
 ## 产物格式
 
@@ -119,7 +142,9 @@ python -m gsq compress data/tile.las -o out --platform mobile
 ```
 gen-sample   合成样例（--kind point 可生成点云）
 analyze      属性画像 + 配方（含编码代价模型决策依据）
-compress     一键压缩（--recipe 可覆写任意参数，非法配方前置校验）
+compress     一键压缩（--recipe 支持 JSON/YAML；--resume 断点续跑；--export-spz 追加 SPZ）
+rerun-stage  单阶段独立重跑（基于 .gsq/ckpt 最近记录）
+compress-model  模型线：ONNX 剪枝 + INT8 量化 + 对拍（--ratio/--no-quantize/--no-validate）
 eval         对已压缩结果做验收评测
 verify       tileset/GLB/gsq 三层结构校验 + 产物清单
 serve        本地 HTTP 服务打开流式查看器
@@ -207,3 +232,6 @@ three.js 路线：GLTFLoader 原生支持 `KHR_mesh_quantization` 的 glb 可直
 - **矢量分块按质心归属**：跨单元的长道路不切割，由所属块整体绘制；极长要素在块边界外仍会绘制（视锥剔除按块 bbox 做，视觉正确）
 - **矢量 varint 编解码为 Python 循环**：10.8k 要素全量单文件编码+评测约 50s（分块路径秒级）；城市级建议直接用分块产物
 - **自产 tileset 坐标约定为 Z-up 直存**（asset.extras 标记），读入外部数据时按 3D Tiles 规范做 Y-up→Z-up 转换；Cesium 直读已打通（见"CesiumJS 前端接入"，依赖 `asset.gltfUpAxis: "Z"` 声明）
+- **SPZ 写出为 v2 legacy gzip 格式**：v4（ZSTD 多流）只读报错；SH 高于 3 阶丢弃（SPZ 规范上限）；scale 量化钳在 log∈[-10, 5.94]，极小尺度（<4.5e-5）会贴底
+- **模型线算子覆盖**：Conv/BN/Gemm/MatMul + passthrough 链（Relu/MaxPool/Clip 等）；Reshape/Transpose/Add/Concat 等通道语义复杂节点保守跳过（计入 skipped，绝不产出坏图）；分组卷积（group>1）、控制流子图不支持
+- **未实现（设计 P2/可选）**：SOG 导出、QAT（需 torch）、LPIPS（需 torch，现以 SSIM+PSNR+体素 IoU 组合门禁）、e57 读取

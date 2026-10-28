@@ -320,6 +320,13 @@ def read_gsq(path: str) -> tuple[GeoScene, dict]:
         codes = _field(h, blob, "sh.codes")
         cb = _field(h, blob, "sh.cb").astype(np.float32)
         sh = cb[codes].reshape(n, k, 3)
+    elif mode == "vectree":
+        codes = _field(h, blob, "sh.codes")                 # (n, stages)
+        sh = np.zeros((n, k * 3), np.float32)
+        for lv in range(codes.shape[1]):
+            cb = _field(h, blob, f"sh.cb{lv}").astype(np.float32)
+            sh += cb[codes[:, lv]]
+        sh = sh.reshape(n, k, 3)
     elif mode == "lowrank":
         fu = next(x for x in h["fields"] if x["name"] == "sh.u")
         fv = next(x for x in h["fields"] if x["name"] == "sh.vt")

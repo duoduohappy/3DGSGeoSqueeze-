@@ -9,8 +9,8 @@ import sys
 
 from .analyze import plan, profile
 from .export import gsq_stats, read_gsq, validate_glb, validate_tileset
-from .ir import las_header, make_sample, read_las, read_ply, write_las, write_ply
-from .pipeline import eval_dir, run_pipeline
+from .ir import las_header, make_sample, read_csv, read_las, read_ply, write_las, write_ply
+from .pipeline import eval_dir, rerun_stage, run_pipeline
 
 PLATFORMS = ["web", "mobile", "desktop", "edge"]
 
@@ -29,6 +29,17 @@ def _load(path: str):
         s = read_gsq(path)[0]
     elif ext == ".ply":
         s = read_ply(path)
+    elif ext == ".spz":
+        from .spz import read_spz
+        s = read_spz(path)[0]
+    elif ext == ".splat":
+        from .spz import read_splat
+        s = read_splat(path)[0]
+    elif ext == ".csv":
+        try:
+            s = read_csv(path)
+        except ValueError as e:
+            raise UserError(f"CSV 解析失败：{e}")
     elif ext in (".las", ".laz"):
         try:
             s = read_las(path)                       # LAZ 会自动调用 laszip/pdal 解压
@@ -37,7 +48,7 @@ def _load(path: str):
         except ValueError as e:
             raise UserError(f"LAS 解析失败：{e}")
     else:
-        raise UserError(f"不支持的输入格式：{path}（支持 .ply / .las / .laz / .gsq）")
+        raise UserError(f"不支持的输入格式：{path}（支持 .ply / .spz / .splat / .las / .laz / .csv / .gsq）")
     if s.n == 0:
         raise UserError(f"场景为空（0 个基元）：{path}")
     if not (np_isfinite(s.pos) and np_isfinite(s.sh) and np_isfinite(s.opacity)):
@@ -48,6 +59,48 @@ def _load(path: str):
 def np_isfinite(a) -> bool:
     import numpy as np
     return bool(np.isfinite(a).all())
+
+
+def _load_recipe(path: str) -> dict:
+    """加载配方：.json / .yaml / .yml。设计文档方言（YAML 单键阶段列表）自动适配。"""
+    if not os.path.isfile(path):
+        raise UserError(f"recipe 文件不存在：{path}")
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    if os.path.splitext(path)[1].lower() in (".yaml", ".yml"):
+        try:
+            import yaml
+            rec = yaml.safe_load(text)
+        except ImportError:
+            raise UserError("读取 YAML 配方需要 PyYAML：pip install pyyaml")
+        except yaml.YAMLError as e:
+            raise UserError(f"YAML 解析失败：{e}")
+    else:
+        rec = json.loads(text)
+    return _validate_recipe(_adapt_recipe(rec))
+
+
+def _adapt_recipe(rec: dict) -> dict:
+    """设计文档方言 → 内部 schema：
+    - stages 里 `- prune: {...}` 单键写法 → {"stage": "prune", ...}
+    - target.quality_floor.psnr → psnr_floor；target.size_budget_mb → size_budget_mb
+    """
+    stages2 = []
+    for st in rec.get("stages", []):
+        if isinstance(st, dict) and len(st) == 1 and isinstance(next(iter(st.values())), dict):
+            name, cfg = next(iter(st.items()))
+            stages2.append({"stage": name, **cfg})
+        else:
+            stages2.append(st)
+    if stages2:
+        rec["stages"] = stages2
+    tgt = rec.get("target", {})
+    if "quality_floor" in tgt and isinstance(tgt["quality_floor"], dict):
+        if "psnr" in tgt["quality_floor"] and "psnr_floor" not in tgt:
+            tgt["psnr_floor"] = tgt["quality_floor"]["psnr"]
+    if "size_budget_mb" in tgt and "size_budget_mb" not in rec.get("target", {}):
+        pass
+    return rec
 
 
 def _validate_recipe(rec: dict) -> dict:
@@ -109,11 +162,25 @@ def main(argv=None) -> int:
     c.add_argument("--platform", default="web", choices=PLATFORMS)
     c.add_argument("--budget", type=float, default=120.0, help="体积预算 MB")
     c.add_argument("--floor", type=float, default=28.0, help="渲染 PSNR 质量底线 dB")
-    c.add_argument("--recipe", default=None, help="自定义 recipe.json")
+    c.add_argument("--recipe", default=None, help="自定义 recipe（.json / .yaml / .yml）")
     c.add_argument("--rounds", type=int, default=3, help="质量门禁最大回调轮数")
     c.add_argument("--views", type=int, default=4, help="渲染评测视位数")
     c.add_argument("--no-render", action="store_true", help="跳过渲染评测（仅体素指标）")
+    c.add_argument("--resume", action="store_true", help="从 .gsq/ckpt 断点续跑")
+    c.add_argument("--export-spz", action="store_true", help="追加导出 SPZ（scene.spz）")
     c.add_argument("--quiet", action="store_true")
+
+    rs = sub.add_parser("rerun-stage", help="单阶段独立重跑（基于 .gsq/ckpt 最近记录）")
+    rs.add_argument("dir", help="已压缩输出目录")
+    rs.add_argument("stage", help="要重跑的阶段名（prune/distill/recover/quantize/lowrank）")
+    rs.add_argument("--baseline", required=True, help="原始输入文件（用于 fingerprint 与 recover 监督）")
+
+    mo = sub.add_parser("compress-model", help="模型线：ONNX 任务模型压缩（CDG 分析+剪枝+INT8 量化）")
+    mo.add_argument("input", help="ONNX 模型路径")
+    mo.add_argument("-o", "--out", default="out_model")
+    mo.add_argument("--ratio", type=float, default=0.4, help="Conv 输出通道剪枝比例")
+    mo.add_argument("--no-quantize", action="store_true", help="跳过 INT8 动态量化")
+    mo.add_argument("--no-validate", action="store_true", help="跳过 onnxruntime 前向对拍")
 
     e = sub.add_parser("eval", help="对已压缩结果做验收评测")
     e.add_argument("dir")
@@ -224,11 +291,11 @@ def _dispatch(args) -> int:
             print(f"input: {s.n} primitives · degree {s.sh_degree} · kind {s.kind} · platform {args.platform}")
         rec = None
         if args.recipe:
-            with open(args.recipe, encoding="utf-8") as f:
-                rec = _validate_recipe(json.load(f))
+            rec = _load_recipe(args.recipe)
         summary = run_pipeline(s, args.out, args.platform, args.budget, args.floor, rec,
                                args.rounds, verbose=not args.quiet, n_views=args.views,
-                               do_render=not args.no_render)
+                               do_render=not args.no_render, resume=args.resume,
+                               export_spz=args.export_spz)
         print(json.dumps({"passed": summary["passed"], **summary["metrics"]}, ensure_ascii=False, indent=1))
         return 0 if summary["passed"] else 2
 
@@ -266,6 +333,25 @@ def _dispatch(args) -> int:
                           "len_rel_err": r["single"]["len_rel_err"],
                           "area_rel_err": r["single"]["area_rel_err"],
                           "tiles": r["tiles"]["tiles"], "viewer": r["viewer"]},
+                         ensure_ascii=False, indent=1))
+        return 0
+
+    if args.cmd == "rerun-stage":
+        base = _load(args.baseline)
+        r = rerun_stage(args.dir, base, args.stage)
+        print(json.dumps(r, ensure_ascii=False, indent=1, default=str))
+        return 0
+
+    if args.cmd == "compress-model":
+        from .model import compress_model
+        r = compress_model(args.input, args.out, ratio=args.ratio,
+                           do_quantize=not args.no_quantize, validate=not args.no_validate)
+        a = r["analysis"]
+        print(json.dumps({"prunable_layers": a["prunable_layers"],
+                          "prune": {k: v for k, v in r.get("prune", {}).items()
+                                    if k not in ("pruned_layers", "skipped")},
+                          "quantize": r.get("quantize"), "validate": r.get("validate"),
+                          "bytes": [a["bytes"], r["final"]["bytes"]]},
                          ensure_ascii=False, indent=1))
         return 0
 

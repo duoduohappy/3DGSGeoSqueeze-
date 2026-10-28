@@ -49,7 +49,7 @@ def significance(s: GeoScene, voxel: float | None = None) -> np.ndarray:
 PLATFORMS = {
     "web":     {"prune": 0.70, "sh_deg": 1, "pos_bits": 16, "sh_bits": 8, "vq": True,  "lowrank": False, "lod": [15, 18, 21]},
     "mobile":  {"prune": 0.85, "sh_deg": 1, "pos_bits": 12, "sh_bits": 8, "vq": True,  "lowrank": True,  "lod": [15, 18]},
-    "desktop": {"prune": 0.30, "sh_deg": 2, "pos_bits": 16, "sh_bits": 8, "vq": False, "lowrank": False, "lod": [15, 18, 21]},
+    "desktop": {"prune": 0.30, "sh_deg": 2, "pos_bits": 16, "sh_bits": 8, "vq": False, "lowrank": False, "tree": True, "lod": [15, 18, 21]},
     "edge":    {"prune": 0.60, "sh_deg": 1, "pos_bits": 12, "sh_bits": 8, "vq": True,  "lowrank": True,  "lod": [15, 18]},
 }
 
@@ -77,10 +77,20 @@ def plan(s: GeoScene, platform="web", size_budget_mb=120.0, psnr_floor=28.0, pro
     use_lowrank = bool(p["lowrank"]) and lr_cost < 0.9 * vq_cost
     if use_lowrank:                       # 低秩必须先于量化（因子要被量化，且 sh 由因子重建）
         stages.append({"stage": "lowrank", "energy": 0.995, "bits": 8})
+    # 设计决策树：desktop 平台 → VecTree 残差量化（高维 SH 下每字节误差更低）
+    use_tree = bool(p.get("tree")) and not use_lowrank and not is_pc
+    if use_tree:
+        rvq_stages = 2 if k <= 24 else 3
+        vt_cost = n_after * rvq_stages + rvq_stages * 256 * k * 3 * 2
+    else:
+        vt_cost = None
     stages.append({"stage": "quantize", "pos_bits": p["pos_bits"], "sh_bits": p["sh_bits"],
-                   "vq": bool(p["vq"]) and not use_lowrank, "codebook": 256})
-    p["_enc"] = {"sh": "lowrank" if use_lowrank else ("vq" if p["vq"] else "scalar"),
-                 "vq_cost": int(vq_cost), "lowrank_cost": int(lr_cost), "rank": lr_rank}
+                   "vq": bool(p["vq"]) and not use_lowrank and not use_tree,
+                   "method": "vectree" if use_tree else None,
+                   "codebook": 256})
+    p["_enc"] = {"sh": "lowrank" if use_lowrank else ("vectree" if use_tree else ("vq" if p["vq"] else "scalar")),
+                 "vq_cost": int(vq_cost), "lowrank_cost": int(lr_cost), "rank": lr_rank,
+                 "vectree_cost": vt_cost}
     return {"target": {"platform": platform, "size_budget_mb": size_budget_mb, "psnr_floor": psnr_floor},
             "stages": stages, "export": {"format": "3dtiles_1.1", "lod_levels": p["lod"],
                                         "geometric_error_scale": 2.0, "quantize_geometry": True,
