@@ -168,17 +168,21 @@ python -m gsq serve out_mesh        # 大数据集（>8MB）回退外链版，�
 
 ## 测试工作台（在线数据 + zip 上传）
 
-`python -m gsq testbench --port 8619` 启动单页测试工作台（零第三方依赖，标准库 HTTP 服务），四条通道：
+`python -m gsq testbench --port 8619` 启动单页测试工作台（零第三方依赖，标准库 HTTP 服务），五条通道：
 
-1. **在线 3D Tiles**：输入 tileset.json 地址 → 后端反代（`/p/<b64>/...`，任意源免 CORS）→ 结构统计（版本/瓦片数/内容格式/上轴）→ CesiumJS 直读渲染
+1. **在线 3D Tiles**：输入 tileset.json 地址 → 后端反代（`/p/<b64>/...`，任意源免 CORS）→ 结构统计 → CesiumJS 直读渲染；同一卡片可**走 GeoSqueeze 管线压缩后前后对比**（下载全套瓦片 → `compress-tiles` → 逐阶段指标 + 双视图并排）
 2. **在线矢量（GeoJSON）**：输入地址 → 下载 → `compress-vector` 压缩 + 评测 → 矢量查看器渲染
 3. **上传 3D Tiles zip**：解压（防 zip-slip）→ 结构校验 → 自动生成内嵌 cesium.html（≤8MB）/外链渲染
 4. **上传矢量 zip**（.geojson/.json）→ compress-vector → 查看器渲染
+5. **3DGS / 点云主链路**（.ply/.las/.gsq 上传）→ `run_pipeline` 完整执行**剪枝 + 蒸馏 + 量化**（蒸馏只在主链路：球谐阶数降阶，可显式指定目标阶数）→ 逐阶段指标 + 压缩后 3D Tiles 渲染
 
 界面含预设下拉（已验证的公开源）。实测记录（截图见 `out/testbench_*.png`）：
 
 - **3DBAG 荷兰全国建筑**（真实生产数据，CC BY 4.0，3D Tiles 1.1）：根 tileset 含 474 个外部子 tileset + glb 内容瓦片，反代递归加载、961 瓦片就绪渲染成功。统计通道会识别外部 tileset 并抽样统计真实内容格式；反代磁盘缓存上限 1GB（超出按最旧淘汰），避免全国级数据撑爆磁盘。版本号 `v20250903` 随官方发布更新，若失效请到 [3dbag.nl](https://3dbag.nl/en/download) 取新地址
+- **3DGS 主链路实测**（合成 gaussian 样例 26,400 基元 / 3 阶球谐 / 5.94MB）：剪枝 26,400 → 7,920（保留 30%，显著性渲染评分）→ **蒸馏球谐 3 阶 → 1 阶**（保留 12 系数 + 能量补偿）→ 量化 16bit 位置 + SH 向量量化（码本 256）→ **5.94MB → 0.389MB（15.28x）**，PSNR 24.2dB。注意：管线内置质量门禁迭代（`relax`），若首轮未达标会逐轮放宽（剪枝变松、蒸馏阶数回升），最终指标以通过门禁的那一轮为准——想让蒸馏保留到产物，可降低 PSNR 底线或直接指定目标阶数
 - 在线自有城市 17 瓦片经反代在线加载，Cesium 完整渲染
+- Cesium 官方 DiscreteLOD（dragon，3 b3dm 瓦片 4.6MB）经「管线压缩」通道：三角形 119,974 → 56,702（保留 47.3%）+ u16 量化，**4.71x**，几何量化步长 21mm
+- 3DBAG 荷兰全国建筑（meshopt 格式）**仅渲染可测、不可压缩**：其 glb 必需 `EXT_meshopt_compression`，本工具不解码该扩展（会给出明确提示）；解压后可压
 - world.geo.json 293 要素 → 压缩 15.0x、最大偏离 0.061m，查看器世界地图正确
 - zip 上传（带一层根目录）解压校验 16 b3dm → 内嵌单文件渲染
 - Cesium 官方 TilesetWithTreeBillboards（3D Tiles 1.0 / i3dm / ECEF 坐标 / Y-up）正确加载渲染——`cesium.html` 新增上轴自适应：默认读 `asset.gltfUpAxis`，无声明按 3D Tiles 默认（Y-up 旋转），`?up=z|y|x` 可强制

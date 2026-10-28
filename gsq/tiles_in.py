@@ -381,7 +381,11 @@ def compress_tileset(src: str, out_dir: str, prune=0.5, pos_bits=16, method="vox
     tdir = os.path.join(out_dir, "tiles")
     os.makedirs(tdir, exist_ok=True)
     for old in glob.glob(os.path.join(tdir, "*")):
-        os.remove(old)
+        try:
+            os.remove(old)
+        except (Exception, SystemExit):
+            # 清理失败不阻断再压缩（部分环境的删除保护/回收站会 sys.exit）
+            pass
     os.makedirs(os.path.join(out_dir, "meta"), exist_ok=True)
 
     # 第一遍：定原点与包围盒（float64），保证后续局部坐标精度

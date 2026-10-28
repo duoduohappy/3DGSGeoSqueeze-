@@ -132,7 +132,12 @@ def build_tiles(s: GeoScene, out_dir: str, lod_levels=(15, 18, 21), quantize_geo
     tdir = os.path.join(out_dir, "tiles")
     os.makedirs(tdir, exist_ok=True)
     for old in glob.glob(os.path.join(tdir, "*.glb")):      # 清理上次产物，避免残留瓦片混入校验
-        os.remove(old)
+        try:
+            os.remove(old)
+        except (Exception, SystemExit):
+            # 清理失败不阻断导出：某些环境的删除保护/回收站会直接 sys.exit，
+            # 残留旧瓦片只会多占空间，不影响本次导出的 tileset 引用
+            pass
     lo, hi = s.bounds()
     extent = float(np.max(hi - lo)) or 1.0
     nlev = len(lod_levels)
