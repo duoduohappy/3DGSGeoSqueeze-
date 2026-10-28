@@ -17,3 +17,4 @@ data/city_big/
 out/testbench/
 _diag_shot.py
 _shot.py
+geosqueeze.egg-info/
