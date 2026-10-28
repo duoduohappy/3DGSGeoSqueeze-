@@ -4,6 +4,8 @@
 
 纯 Python（numpy + Pillow），零 GPU 依赖即可跑通全链路；检测到 torch + diff-gaussian-rasterization + CUDA 时自动切换官方光栅化器。
 
+> 模块分层、主链路调用关系与设计稿差异见 **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**。
+
 ## 快速开始
 
 ```bash
