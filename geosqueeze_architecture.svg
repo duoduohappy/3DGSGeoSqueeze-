@@ -1,0 +1,169 @@
+<svg viewBox="0 0 1280 1070" width="100%" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>GeoSqueeze 端到端三维压缩工具架构图</title>
+  <desc>输入层、摄取与IR、自动分析、压缩引擎、打包流式化、评测验证六层架构，含质量门禁回流与横切支撑</desc>
+  <defs>
+    <marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <text x="40" y="38" font-size="18" font-weight="500" fill="#2C2C2A">GeoSqueeze 架构总览 —— 端到端三维资产压缩与流式化引擎</text>
+  <text x="40" y="60" font-size="12" fill="#5F5E5A">输入 3DGS / 点云 → 自动分析 → 剪枝·蒸馏·量化·低秩 → 3D Tiles / SPZ 流式输出 → 评测门禁闭环</text>
+
+  <!-- Row 1: Inputs -->
+  <g>
+    <rect x="80" y="80" width="340" height="60" rx="10" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="250" y="104" text-anchor="middle" font-size="13" font-weight="500" fill="#26215C">3DGS 场景资产</text>
+    <text x="250" y="124" text-anchor="middle" font-size="12" fill="#534AB7">.ply / .spz / .splat（可含训练视图）</text>
+
+    <rect x="470" y="80" width="340" height="60" rx="10" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="640" y="104" text-anchor="middle" font-size="13" font-weight="500" fill="#26215C">点云数据</text>
+    <text x="640" y="124" text-anchor="middle" font-size="12" fill="#534AB7">LAS / LAZ / e57 / PLY / CSV</text>
+
+    <rect x="860" y="80" width="340" height="60" rx="10" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="1030" y="104" text-anchor="middle" font-size="13" font-weight="500" fill="#26215C">下游任务模型（可选）</text>
+    <text x="1030" y="124" text-anchor="middle" font-size="12" fill="#534AB7">PointNet++ / KPConv · ONNX</text>
+  </g>
+
+  <line x1="250" y1="140" x2="250" y2="172" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arw)"/>
+  <line x1="640" y1="140" x2="640" y2="172" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arw)"/>
+  <line x1="1030" y1="140" x2="1030" y2="172" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arw)"/>
+
+  <!-- Row 2: Ingestion / IR -->
+  <g>
+    <rect x="80" y="176" width="1120" height="64" rx="12" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+    <text x="640" y="200" text-anchor="middle" font-size="14" font-weight="500" fill="#085041">摄取层 Ingestion —— 统一中间表示 GeoScene IR</text>
+    <text x="640" y="224" text-anchor="middle" font-size="12" fill="#0F6E56">自适应八叉树索引 · 列式属性表（position / SH / opacity / scale / rotation）· 溯源链（参数+种子，可复现）</text>
+  </g>
+
+  <line x1="640" y1="240" x2="640" y2="270" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arw)"/>
+
+  <!-- Row 3: Analysis -->
+  <g>
+    <rect x="80" y="274" width="260" height="88" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+    <text x="210" y="298" text-anchor="middle" font-size="13" font-weight="500" fill="#042C53">属性画像 Profiler</text>
+    <text x="210" y="318" text-anchor="middle" font-size="12" fill="#185FA5">高斯数 / SH 阶数分布</text>
+    <text x="210" y="337" text-anchor="middle" font-size="12" fill="#185FA5">各属性直方图，定位体积瓶颈</text>
+
+    <rect x="360" y="274" width="260" height="88" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+    <text x="490" y="298" text-anchor="middle" font-size="13" font-weight="500" fill="#042C53">空间分析</text>
+    <text x="490" y="318" text-anchor="middle" font-size="12" fill="#185FA5">八叉树密度分层 · LOD 需求</text>
+    <text x="490" y="337" text-anchor="middle" font-size="12" fill="#185FA5">离簇噪声点清洗</text>
+
+    <rect x="640" y="274" width="260" height="88" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+    <text x="770" y="298" text-anchor="middle" font-size="13" font-weight="500" fill="#042C53">重要性打分</text>
+    <text x="770" y="318" text-anchor="middle" font-size="12" fill="#185FA5">场景：全局显著性（渲染贡献）</text>
+    <text x="770" y="337" text-anchor="middle" font-size="12" fill="#185FA5">模型：CDG 可压缩上限分析</text>
+
+    <rect x="920" y="274" width="280" height="88" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+    <text x="1060" y="298" text-anchor="middle" font-size="13" font-weight="500" fill="#042C53">配方规划 Planner</text>
+    <text x="1060" y="318" text-anchor="middle" font-size="12" fill="#185FA5">平台 + 质量底线 + 体积预算</text>
+    <text x="1060" y="337" text-anchor="middle" font-size="12" fill="#185FA5">决策树 → recipe.yaml</text>
+    <line x1="900" y1="318" x2="916" y2="318" stroke="#185FA5" stroke-width="1.5" marker-end="url(#arw)"/>
+  </g>
+
+  <line x1="640" y1="362" x2="640" y2="396" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arw)"/>
+  <text x="655" y="384" font-size="12" fill="#5F5E5A">recipe.yaml 驱动</text>
+
+  <!-- Row 4: Compression Engine -->
+  <g>
+    <rect x="80" y="400" width="1120" height="240" rx="14" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+    <text x="640" y="426" text-anchor="middle" font-size="14" font-weight="500" fill="#4A1B0C">压缩引擎 Compression Engine —— 阶段化可插拔 DAG · 阶段间自动 checkpoint · 断点续跑</text>
+
+    <rect x="104" y="446" width="250" height="170" rx="10" fill="#F5C4B3" stroke="#993C1D" stroke-width="0.5"/>
+    <text x="229" y="470" text-anchor="middle" font-size="13" font-weight="500" fill="#4A1B0C">剪枝 Prune</text>
+    <text x="229" y="492" text-anchor="middle" font-size="12" fill="#712B13">显著性剪枝 + 恢复微调</text>
+    <text x="229" y="511" text-anchor="middle" font-size="12" fill="#712B13">合并吸收 / 体素去重</text>
+    <text x="229" y="530" text-anchor="middle" font-size="12" fill="#712B13">点云体素抽稀（LOD 上层）</text>
+    <text x="229" y="549" text-anchor="middle" font-size="12" fill="#712B13">模型线：ONNX 结构化剪枝</text>
+    <text x="229" y="568" text-anchor="middle" font-size="12" fill="#712B13">（CDG 图手术，免源码）</text>
+
+    <rect x="384" y="446" width="250" height="170" rx="10" fill="#F5C4B3" stroke="#993C1D" stroke-width="0.5"/>
+    <text x="509" y="470" text-anchor="middle" font-size="13" font-weight="500" fill="#4A1B0C">蒸馏·恢复 Distill</text>
+    <text x="509" y="492" text-anchor="middle" font-size="12" fill="#712B13">SH 蒸馏（Teacher→Student）</text>
+    <text x="509" y="511" text-anchor="middle" font-size="12" fill="#712B13">渲染监督恢复（L1+LPIPS）</text>
+    <text x="509" y="530" text-anchor="middle" font-size="12" fill="#712B13">无视图时：伪视图监督</text>
+    <text x="509" y="549" text-anchor="middle" font-size="12" fill="#712B13">模型线：logits KL 蒸馏</text>
+    <text x="509" y="568" text-anchor="middle" font-size="12" fill="#712B13">迭代数随质量缺口自适应</text>
+
+    <rect x="664" y="446" width="250" height="170" rx="10" fill="#F5C4B3" stroke="#993C1D" stroke-width="0.5"/>
+    <text x="789" y="470" text-anchor="middle" font-size="13" font-weight="500" fill="#4A1B0C">量化 Quantize</text>
+    <text x="789" y="492" text-anchor="middle" font-size="12" fill="#712B13">混合精度：位置16b 其余8b</text>
+    <text x="789" y="511" text-anchor="middle" font-size="12" fill="#712B13">SH：乘积量化 / VecTree 残差</text>
+    <text x="789" y="530" text-anchor="middle" font-size="12" fill="#712B13">几何：KHR 量化 + 熵编码</text>
+    <text x="789" y="549" text-anchor="middle" font-size="12" fill="#712B13">可选 QAT（掉点超限时）</text>
+    <text x="789" y="568" text-anchor="middle" font-size="12" fill="#712B13">模型线：INT8 权重+激活</text>
+
+    <rect x="944" y="446" width="232" height="170" rx="10" fill="#F5C4B3" stroke="#993C1D" stroke-width="0.5"/>
+    <text x="1060" y="470" text-anchor="middle" font-size="13" font-weight="500" fill="#4A1B0C">低秩 LowRank（可选）</text>
+    <text x="1060" y="492" text-anchor="middle" font-size="12" fill="#712B13">SH 残差 SVD 截断</text>
+    <text x="1060" y="511" text-anchor="middle" font-size="12" fill="#712B13">网格化表示张量分解</text>
+    <text x="1060" y="530" text-anchor="middle" font-size="12" fill="#712B13">rank ↔ LOD 细节层级对齐</text>
+    <text x="1060" y="549" text-anchor="middle" font-size="12" fill="#712B13">（借鉴 CCNeRF）</text>
+    <text x="1060" y="568" text-anchor="middle" font-size="12" fill="#712B13">再省 20-30% 体积</text>
+
+    <line x1="354" y1="531" x2="380" y2="531" stroke="#993C1D" stroke-width="1.5" marker-end="url(#arw)"/>
+    <line x1="634" y1="531" x2="660" y2="531" stroke="#993C1D" stroke-width="1.5" marker-end="url(#arw)"/>
+    <line x1="914" y1="531" x2="940" y2="531" stroke="#993C1D" stroke-width="1.5" marker-end="url(#arw)"/>
+    <circle cx="367" cy="506" r="4" fill="#993C1D"/>
+    <circle cx="647" cy="506" r="4" fill="#993C1D"/>
+    <circle cx="927" cy="506" r="4" fill="#993C1D"/>
+  </g>
+
+  <line x1="640" y1="640" x2="640" y2="672" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arw)"/>
+
+  <!-- Row 5: Packaging -->
+  <g>
+    <rect x="80" y="676" width="360" height="96" rx="10" fill="#EAF3DE" stroke="#3B6D11" stroke-width="0.5"/>
+    <text x="260" y="700" text-anchor="middle" font-size="13" font-weight="500" fill="#173404">LOD 构建器</text>
+    <text x="260" y="720" text-anchor="middle" font-size="12" fill="#3B6D11">层级八叉树高斯（父粗子细）</text>
+    <text x="260" y="739" text-anchor="middle" font-size="12" fill="#3B6D11">geometric error 映射（L15≈64m…）</text>
+    <text x="260" y="758" text-anchor="middle" font-size="12" fill="#3B6D11">渐进式细节层级</text>
+
+    <rect x="460" y="676" width="360" height="96" rx="10" fill="#EAF3DE" stroke="#3B6D11" stroke-width="0.5"/>
+    <text x="640" y="700" text-anchor="middle" font-size="13" font-weight="500" fill="#173404">流式打包</text>
+    <text x="640" y="720" text-anchor="middle" font-size="12" fill="#3B6D11">tileset.json + 空间索引</text>
+    <text x="640" y="739" text-anchor="middle" font-size="12" fill="#3B6D11">meshopt / gzip 缓冲区压缩</text>
+    <text x="640" y="758" text-anchor="middle" font-size="12" fill="#3B6D11">自定义扩展 GSQ_gaussian_attributes</text>
+
+    <rect x="840" y="676" width="360" height="96" rx="10" fill="#EAF3DE" stroke="#3B6D11" stroke-width="0.5"/>
+    <text x="1020" y="700" text-anchor="middle" font-size="13" font-weight="500" fill="#173404">导出格式</text>
+    <text x="1020" y="720" text-anchor="middle" font-size="12" fill="#3B6D11">3D Tiles 1.1 (GLB) —— GIS 交付主格式</text>
+    <text x="1020" y="739" text-anchor="middle" font-size="12" fill="#3B6D11">SPZ / SOG —— Web 与移动端</text>
+    <text x="1020" y="758" text-anchor="middle" font-size="12" fill="#3B6D11">ONNX (量化后任务模型) —— NPU 部署</text>
+  </g>
+
+  <line x1="640" y1="772" x2="640" y2="804" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arw)"/>
+
+  <!-- Row 6: Validation -->
+  <g>
+    <rect x="80" y="808" width="360" height="88" rx="10" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+    <text x="260" y="832" text-anchor="middle" font-size="13" font-weight="500" fill="#412402">Headless 渲染评测</text>
+    <text x="260" y="852" text-anchor="middle" font-size="12" fill="#854F0B">固定 40 视位 · 压缩前后并排渲染</text>
+    <text x="260" y="871" text-anchor="middle" font-size="12" fill="#854F0B">自带简化光栅化器，可跑 CI</text>
+
+    <rect x="460" y="808" width="360" height="88" rx="10" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+    <text x="640" y="832" text-anchor="middle" font-size="13" font-weight="500" fill="#412402">指标体系</text>
+    <text x="640" y="852" text-anchor="middle" font-size="12" fill="#854F0B">PSNR / SSIM / LPIPS</text>
+    <text x="640" y="871" text-anchor="middle" font-size="12" fill="#854F0B">总体积 · 首帧时间 · 峰值显存 · FPS</text>
+
+    <rect x="840" y="808" width="360" height="88" rx="10" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+    <text x="1020" y="832" text-anchor="middle" font-size="13" font-weight="500" fill="#412402">质量门禁 Gate</text>
+    <text x="1020" y="852" text-anchor="middle" font-size="12" fill="#854F0B">达标 → 发布 + HTML 对比报告</text>
+    <text x="1020" y="871" text-anchor="middle" font-size="12" fill="#854F0B">不达标 → 自动放宽配方重跑（≤3 轮）</text>
+    <line x1="900" y1="852" x2="916" y2="852" stroke="#854F0B" stroke-width="1.5" marker-end="url(#arw)"/>
+  </g>
+
+  <!-- Feedback loop -->
+  <path d="M 1200 852 L 1224 852 L 1224 520 L 1204 520" fill="none" stroke="#A32D2D" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arw)"/>
+  <text x="1010" y="428" font-size="12" fill="#A32D2D">不达标 → 调整配方重跑</text>
+
+  <!-- Cross-cutting bar -->
+  <g>
+    <rect x="80" y="930" width="1120" height="64" rx="12" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+    <text x="640" y="954" text-anchor="middle" font-size="14" font-weight="500" fill="#2C2C2A">横切支撑层</text>
+    <text x="640" y="978" text-anchor="middle" font-size="12" fill="#5F5E5A">CLI (typer) / Python API / Web UI (P2) · 插件注册表（阶段即插件） · Rust+Rayon 与 PyTorch 双运行时 · 配方 schema（pydantic） · 溯源元数据</text>
+  </g>
+
+  <text x="80" y="1030" font-size="12" fill="#5F5E5A">借鉴来源：LightGaussian（显著性剪枝/SH蒸馏/VecTree量化）· point-tiler（3D Tiles打包/geometric error）· H3DNAS（ONNX免源码剪枝）· Draco/meshopt（几何量化）· 3dgs.zip（压缩方法综述跟踪）</text>
+</svg>

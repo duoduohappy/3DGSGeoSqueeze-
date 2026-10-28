@@ -1,0 +1,114 @@
+<!doctype html><meta charset="utf-8"><title>GeoSqueeze 压缩报告</title>
+<style>body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;max-width:920px;margin:40px auto;padding:0 20px;color:#2c2c2a}
+h1{font-size:22px;font-weight:600}h2{font-size:16px;margin-top:28px;border-bottom:1px solid #e5e3dc;padding-bottom:6px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px solid #eee;padding:6px 8px;text-align:left;vertical-align:top}
+code{background:#f4f3ef;padding:2px 4px;border-radius:3px;font-size:12px}.ok{color:#3b6d11;font-weight:600}
+.badge{display:inline-block;background:#eaf3de;color:#3b6d11;border-radius:10px;padding:2px 10px;font-size:12px}</style>
+<h1>GeoSqueeze 压缩报告</h1><p class="badge">门禁通过 · PSNR 24.191 dB</p>
+<h2>指标</h2><table><tr><td>n_orig</td><td>26400</td></tr><tr><td>n_comp</td><td>7920</td></tr><tr><td>keep_ratio</td><td>0.3</td></tr><tr><td>voxel_iou</td><td>0.2965</td></tr><tr><td>color_psnr</td><td>24.191</td></tr><tr><td>orig_mb</td><td>5.942</td></tr><tr><td>comp_mb</td><td>0.389</td></tr><tr><td>ratio</td><td>15.28</td></tr><tr><td>payload_mb</td><td>0.12</td></tr><tr><td>opacity_mae</td><td>0.0084</td></tr><tr><td>tiles</td><td>28</td></tr><tr><td>tileset</td><td>out\tileset.json</td></tr><tr><td>gsq_mb</td><td>0.12</td></tr><tr><td>psnr_render</td><td>26.607</td></tr><tr><td>ssim_render</td><td>0.9584</td></tr><tr><td>render_views</td><td>[{'view': 0, 'psnr': 28.8, 'psnr_mask': 18.74, 'ssim': 0.9641, 'coverage': 0.099}, {'view': 1, 'psnr': 24.16, 'psnr_mask': 14.44, 'ssim': 0.9496, 'coverage': 0.107}, {'view': 2, 'psnr': 28.83, 'psnr_mask': 18.86, 'ssim': 0.9652, 'coverage': 0.101}, {'view': 3, 'psnr': 24.64, 'psnr_mask': 14.92, 'ssim': 0.9545, 'coverage': 0.107}]</td></tr><tr><td>render_ms_per_view</td><td>786.89</td></tr><tr><td>render_backend</td><td>cpu_reference</td></tr><tr><td>gate</td><td>{'psnr': True, 'iou': True, 'metric': 'psnr_render', 'iou_floor': 0.255}</td></tr></table>
+<h2>配方</h2><pre><code>{
+ "target": {
+  "platform": "web",
+  "size_budget_mb": 120.0,
+  "psnr_floor": 24.0
+ },
+ "stages": [
+  {
+   "stage": "prune",
+   "ratio": 0.7,
+   "method": "render"
+  },
+  {
+   "stage": "distill",
+   "target_degree": 1,
+   "preserve_mean": true
+  },
+  {
+   "stage": "recover",
+   "iters": 3,
+   "lr": 1.5,
+   "n_views": 2,
+   "grow": 1.06
+  },
+  {
+   "stage": "quantize",
+   "pos_bits": 16,
+   "sh_bits": 8,
+   "vq": true,
+   "codebook": 256
+  }
+ ],
+ "export": {
+  "format": "3dtiles_1.1",
+  "lod_levels": [
+   15,
+   18,
+   21
+  ],
+  "geometric_error_scale": 2.0,
+  "quantize_geometry": true,
+  "sh_in_tiles": "lod"
+ },
+ "analysis": {
+  "n_primitives": 26400,
+  "kind": "gaussian",
+  "sh_degree": 3,
+  "bytes_estimate": 6230400,
+  "attr_bytes_per_prim": {
+   "position": 12,
+   "sh": 192,
+   "opacity": 4,
+   "scale": 12,
+   "rot": 16
+  },
+  "attr_share": {
+   "position": 0.0508,
+   "sh": 0.8136,
+   "opacity": 0.0169,
+   "scale": 0.0508,
+   "rot": 0.0678
+  },
+  "extent": 40.256,
+  "bbox_min": [
+   -20.128,
+   -20.163,
+   -0.225
+  ],
+  "bbox_max": [
+   20.128,
+   20.094,
+   25.97
+  ],
+  "opacity_mean": 0.8502,
+  "opacity_low_ratio": 0.0,
+  "scale_mean": 0.1599,
+  "voxel_occupancy": {
+   "v5": 1963,
+   "v8": 24717,
+   "v10": 26273
+  },
+  "bottleneck": "sh"
+ },
+ "encoding": {
+  "sh": "vq",
+  "cost_model": {
+   "sh": "vq",
+   "vq_cost": 32496,
+   "lowrank_cost": 294986,
+   "rank": 37
+  }
+ }
+}</code></pre>
+<h2>阶段明细</h2><table><tr><td>prune</td><td><code>{"stage": "prune", "ratio": 0.7, "kept": 7920, "method": "render", "score_cut": 0.0841912180185318}</code></td></tr><tr><td>distill</td><td><code>{"stage": "distill", "degree_from": 3, "degree_to": 1, "coef_kept": 12, "energy_compensated": true}</code></td></tr><tr><td>recover</td><td><code>{"stage": "recover", "iters": 3, "lr": 1.5, "grow": 1.06, "psnr_before": 27.622, "psnr_after": 28.856, "ssim_before": 0.9617, "ssim_after": 0.9655, "delta_db": 1.23, "resid": [0.01838, 0.00744, 0.00399]}</code></td></tr><tr><td>quantize</td><td><code>{"stage": "quantize", "pos_bits": 16, "pos_mse": 4.357339378202596e-08, "sh_mode": "vq", "codebook": 256, "sh_mse": 0.0009920643642544746, "payload_bytes": 124944}</code></td></tr></table>
+<h2>溯源</h2><pre><code>{
+ "tool": "GeoSqueeze",
+ "version": "0.1.0",
+ "input_fingerprint": "6f7861212864c41d",
+ "platform": "web",
+ "rounds": 1,
+ "elapsed_s": 23.98,
+ "input": {
+  "source": "data/sample.ply",
+  "format": "ply"
+ }
+}</code></pre>

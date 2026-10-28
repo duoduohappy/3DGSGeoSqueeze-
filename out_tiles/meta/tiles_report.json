@@ -1,0 +1,73 @@
+{
+ "tileset": "out_tiles\\tileset.json",
+ "tiles_in": 9,
+ "tiles_out": 9,
+ "pts_in": 49500,
+ "pts_out": 25040,
+ "bytes_in": 2338552,
+ "bytes_out": 447000,
+ "ratio": 5.23,
+ "point_ratio": 1.98,
+ "mesh_tiles": 9,
+ "origin": [
+  5200400.01537919,
+  4100399.991177559,
+  30029.808010402165
+ ],
+ "per_tile": [
+  {
+   "tile": 1,
+   "src": "tiles/0_0.glb",
+   "primitives": 2789,
+   "bytes": 48916
+  },
+  {
+   "tile": 2,
+   "src": "tiles/0_1.glb",
+   "primitives": 2782,
+   "bytes": 48800
+  },
+  {
+   "tile": 3,
+   "src": "tiles/0_2.glb",
+   "primitives": 2801,
+   "bytes": 49124
+  },
+  {
+   "tile": 4,
+   "src": "tiles/1_0.glb",
+   "primitives": 2755,
+   "bytes": 48344
+  },
+  {
+   "tile": 5,
+   "src": "tiles/1_1.glb",
+   "primitives": 2801,
+   "bytes": 49124
+  },
+  {
+   "tile": 6,
+   "src": "tiles/1_2.glb",
+   "primitives": 2791,
+   "bytes": 48952
+  },
+  {
+   "tile": 7,
+   "src": "tiles/2_0.glb",
+   "primitives": 2801,
+   "bytes": 49124
+  },
+  {
+   "tile": 8,
+   "src": "tiles/2_1.glb",
+   "primitives": 2747,
+   "bytes": 48208
+  },
+  {
+   "tile": 9,
+   "src": "tiles/2_2.glb",
+   "primitives": 2773,
+   "bytes": 48648
+  }
+ ]
+}

@@ -1,0 +1,81 @@
+{
+ "target": {
+  "platform": "web",
+  "size_budget_mb": 20.0,
+  "psnr_floor": 22.0
+ },
+ "stages": [
+  {
+   "stage": "prune",
+   "ratio": 0.7,
+   "method": "voxel"
+  },
+  {
+   "stage": "quantize",
+   "pos_bits": 16,
+   "sh_bits": 8,
+   "vq": true,
+   "codebook": 256
+  }
+ ],
+ "export": {
+  "format": "3dtiles_1.1",
+  "lod_levels": [
+   15,
+   18,
+   21
+  ],
+  "geometric_error_scale": 2.0,
+  "quantize_geometry": true,
+  "sh_in_tiles": "lod"
+ },
+ "analysis": {
+  "n_primitives": 6000,
+  "kind": "point",
+  "sh_degree": 0,
+  "bytes_estimate": 336000,
+  "attr_bytes_per_prim": {
+   "position": 12,
+   "sh": 12,
+   "opacity": 4,
+   "scale": 12,
+   "rot": 16
+  },
+  "attr_share": {
+   "position": 0.2143,
+   "sh": 0.2143,
+   "opacity": 0.0714,
+   "scale": 0.2143,
+   "rot": 0.2857
+  },
+  "extent": 40.235,
+  "bbox_min": [
+   -20.107,
+   -20.088,
+   -0.173
+  ],
+  "bbox_max": [
+   20.128,
+   20.129,
+   25.963
+  ],
+  "opacity_mean": 1.0,
+  "opacity_low_ratio": 0.0,
+  "scale_mean": 0.4674,
+  "voxel_occupancy": {
+   "v5": 1890,
+   "v8": 5932,
+   "v10": 5995
+  },
+  "bottleneck": "rot"
+ },
+ "encoding": {
+  "sh": "vq",
+  "cost_model": {
+   "sh": "vq",
+   "vq_cost": 3336,
+   "lowrank_cost": 5421,
+   "rank": 3
+  }
+ }
+}

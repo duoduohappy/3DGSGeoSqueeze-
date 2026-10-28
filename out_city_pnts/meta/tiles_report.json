@@ -1,0 +1,43 @@
+{
+ "tileset": "out_city_pnts\\tileset.json",
+ "tiles_in": 4,
+ "tiles_out": 4,
+ "pts_in": 14560,
+ "pts_out": 8881,
+ "bytes_in": 218960,
+ "bytes_out": 85204,
+ "ratio": 2.57,
+ "point_ratio": 1.64,
+ "mesh_tiles": 0,
+ "origin": [
+  5200299.9271047115,
+  4100300.056602001,
+  30029.378393589832
+ ],
+ "per_tile": [
+  {
+   "tile": 1,
+   "src": "tiles/0_0.pnts",
+   "primitives": 2214,
+   "bytes": 20236
+  },
+  {
+   "tile": 2,
+   "src": "tiles/0_1.pnts",
+   "primitives": 2226,
+   "bytes": 20348
+  },
+  {
+   "tile": 3,
+   "src": "tiles/1_0.pnts",
+   "primitives": 2216,
+   "bytes": 20252
+  },
+  {
+   "tile": 4,
+   "src": "tiles/1_1.pnts",
+   "primitives": 2225,
+   "bytes": 20340
+  }
+ ]
+}

@@ -1,0 +1,128 @@
+{
+ "passed": true,
+ "metrics": {
+  "n_orig": 6000,
+  "n_comp": 1829,
+  "keep_ratio": 0.3048,
+  "voxel_iou": 0.3016,
+  "color_psnr": 30.231,
+  "orig_mb": 0.32,
+  "comp_mb": 0.071,
+  "ratio": 4.5,
+  "payload_mb": 0.029,
+  "opacity_mae": 0.0,
+  "tiles": 7,
+  "tileset": "out_las\\tileset.json",
+  "gsq_mb": 0.029,
+  "psnr_render": 31.461,
+  "ssim_render": 0.9664,
+  "render_views": [
+   {
+    "view": 0,
+    "psnr": 32.86,
+    "psnr_mask": 24.67,
+    "ssim": 0.9699,
+    "coverage": 0.152
+   },
+   {
+    "view": 1,
+    "psnr": 30.83,
+    "psnr_mask": 22.55,
+    "ssim": 0.9655,
+    "coverage": 0.149
+   },
+   {
+    "view": 2,
+    "psnr": 30.69,
+    "psnr_mask": 22.47,
+    "ssim": 0.9638,
+    "coverage": 0.151
+   }
+  ],
+  "render_ms_per_view": 173.73,
+  "render_backend": "cpu_reference",
+  "gate": {
+   "psnr": true,
+   "iou": true,
+   "metric": "psnr_render",
+   "iou_floor": 0.2591
+  }
+ },
+ "rounds": 1,
+ "viewer": "out_las\\viewer.html",
+ "history": [
+  {
+   "round": 0,
+   "metrics": {
+    "n_orig": 6000,
+    "n_comp": 1829,
+    "keep_ratio": 0.3048,
+    "voxel_iou": 0.3016,
+    "color_psnr": 30.231,
+    "orig_mb": 0.32,
+    "comp_mb": 0.071,
+    "ratio": 4.5,
+    "payload_mb": 0.029,
+    "opacity_mae": 0.0,
+    "tiles": 7,
+    "tileset": "out_las\\tileset.json",
+    "gsq_mb": 0.029,
+    "psnr_render": 31.461,
+    "ssim_render": 0.9664,
+    "render_views": [
+     {
+      "view": 0,
+      "psnr": 32.86,
+      "psnr_mask": 24.67,
+      "ssim": 0.9699,
+      "coverage": 0.152
+     },
+     {
+      "view": 1,
+      "psnr": 30.83,
+      "psnr_mask": 22.55,
+      "ssim": 0.9655,
+      "coverage": 0.149
+     },
+     {
+      "view": 2,
+      "psnr": 30.69,
+      "psnr_mask": 22.47,
+      "ssim": 0.9638,
+      "coverage": 0.151
+     }
+    ],
+    "render_ms_per_view": 173.73,
+    "render_backend": "cpu_reference",
+    "gate": {
+     "psnr": true,
+     "iou": true,
+     "metric": "psnr_render",
+     "iou_floor": 0.2591
+    }
+   },
+   "passed": true
+  }
+ ],
+ "infos": [
+  {
+   "stage": "prune",
+   "method": "voxel",
+   "kept": 1829,
+   "voxel": 1.29241,
+   "occupied_voxels": 1829
+  },
+  {
+   "stage": "quantize",
+   "pos_bits": 16,
+   "pos_mse": 4.042266610326806e-08,
+   "sh_mode": "vq",
+   "codebook": 256,
+   "sh_mse": 0.0006303003756329417,
+   "payload_bytes": 28971
+  }
+ ],
+ "tileset": "out_las\\tileset.json",
+ "gsq": "out_las\\scene.gsq",
+ "out_dir": "C:\\Users\\TempAdmin\\WorkBuddy\\2026-10-28-08-42-27\\out_las"
+}

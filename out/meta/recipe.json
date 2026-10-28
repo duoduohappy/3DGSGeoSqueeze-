@@ -1,0 +1,93 @@
+{
+ "target": {
+  "platform": "web",
+  "size_budget_mb": 120.0,
+  "psnr_floor": 24.0
+ },
+ "stages": [
+  {
+   "stage": "prune",
+   "ratio": 0.7,
+   "method": "render"
+  },
+  {
+   "stage": "distill",
+   "target_degree": 1,
+   "preserve_mean": true
+  },
+  {
+   "stage": "recover",
+   "iters": 3,
+   "lr": 1.5,
+   "n_views": 2,
+   "grow": 1.06
+  },
+  {
+   "stage": "quantize",
+   "pos_bits": 16,
+   "sh_bits": 8,
+   "vq": true,
+   "codebook": 256
+  }
+ ],
+ "export": {
+  "format": "3dtiles_1.1",
+  "lod_levels": [
+   15,
+   18,
+   21
+  ],
+  "geometric_error_scale": 2.0,
+  "quantize_geometry": true,
+  "sh_in_tiles": "lod"
+ },
+ "analysis": {
+  "n_primitives": 26400,
+  "kind": "gaussian",
+  "sh_degree": 3,
+  "bytes_estimate": 6230400,
+  "attr_bytes_per_prim": {
+   "position": 12,
+   "sh": 192,
+   "opacity": 4,
+   "scale": 12,
+   "rot": 16
+  },
+  "attr_share": {
+   "position": 0.0508,
+   "sh": 0.8136,
+   "opacity": 0.0169,
+   "scale": 0.0508,
+   "rot": 0.0678
+  },
+  "extent": 40.256,
+  "bbox_min": [
+   -20.128,
+   -20.163,
+   -0.225
+  ],
+  "bbox_max": [
+   20.128,
+   20.094,
+   25.97
+  ],
+  "opacity_mean": 0.8502,
+  "opacity_low_ratio": 0.0,
+  "scale_mean": 0.1599,
+  "voxel_occupancy": {
+   "v5": 1963,
+   "v8": 24717,
+   "v10": 26273
+  },
+  "bottleneck": "sh"
+ },
+ "encoding": {
+  "sh": "vq",
+  "cost_model": {
+   "sh": "vq",
+   "vq_cost": 32496,
+   "lowrank_cost": 294986,
+   "rank": 37
+  }
+ }
+}

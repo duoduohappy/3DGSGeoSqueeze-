@@ -1,0 +1,403 @@
+{
+ "tileset": "out_city_big\\tileset.json",
+ "tiles_in": 64,
+ "tiles_out": 64,
+ "pts_in": 2932480,
+ "pts_out": 1446073,
+ "bytes_in": 137913248,
+ "bytes_out": 13083255,
+ "ratio": 10.54,
+ "point_ratio": 2.03,
+ "mesh_tiles": 64,
+ "origin": [
+  5200899.998296022,
+  4100899.999778509,
+  30029.962326055756
+ ],
+ "per_tile": [
+  {
+   "tile": 1,
+   "src": "tiles/0_0.glb",
+   "primitives": 22515,
+   "bytes": 202948
+  },
+  {
+   "tile": 2,
+   "src": "tiles/0_1.glb",
+   "primitives": 22551,
+   "bytes": 203268
+  },
+  {
+   "tile": 3,
+   "src": "tiles/0_2.glb",
+   "primitives": 22529,
+   "bytes": 203076
+  },
+  {
+   "tile": 4,
+   "src": "tiles/0_3.glb",
+   "primitives": 22795,
+   "bytes": 205476
+  },
+  {
+   "tile": 5,
+   "src": "tiles/0_4.glb",
+   "primitives": 22682,
+   "bytes": 204452
+  },
+  {
+   "tile": 6,
+   "src": "tiles/0_5.glb",
+   "primitives": 22758,
+   "bytes": 205132
+  },
+  {
+   "tile": 7,
+   "src": "tiles/0_6.glb",
+   "primitives": 22496,
+   "bytes": 202772
+  },
+  {
+   "tile": 8,
+   "src": "tiles/0_7.glb",
+   "primitives": 22496,
+   "bytes": 202772
+  },
+  {
+   "tile": 9,
+   "src": "tiles/1_0.glb",
+   "primitives": 22669,
+   "bytes": 204324
+  },
+  {
+   "tile": 10,
+   "src": "tiles/1_1.glb",
+   "primitives": 22569,
+   "bytes": 203436
+  },
+  {
+   "tile": 11,
+   "src": "tiles/1_2.glb",
+   "primitives": 22541,
+   "bytes": 203180
+  },
+  {
+   "tile": 12,
+   "src": "tiles/1_3.glb",
+   "primitives": 22632,
+   "bytes": 204004
+  },
+  {
+   "tile": 13,
+   "src": "tiles/1_4.glb",
+   "primitives": 22483,
+   "bytes": 202660
+  },
+  {
+   "tile": 14,
+   "src": "tiles/1_5.glb",
+   "primitives": 22537,
+   "bytes": 203148
+  },
+  {
+   "tile": 15,
+   "src": "tiles/1_6.glb",
+   "primitives": 22533,
+   "bytes": 203108
+  },
+  {
+   "tile": 16,
+   "src": "tiles/1_7.glb",
+   "primitives": 22522,
+   "bytes": 203012
+  },
+  {
+   "tile": 17,
+   "src": "tiles/2_0.glb",
+   "primitives": 22662,
+   "bytes": 204268
+  },
+  {
+   "tile": 18,
+   "src": "tiles/2_1.glb",
+   "primitives": 22549,
+   "bytes": 203260
+  },
+  {
+   "tile": 19,
+   "src": "tiles/2_2.glb",
+   "primitives": 22760,
+   "bytes": 205156
+  },
+  {
+   "tile": 20,
+   "src": "tiles/2_3.glb",
+   "primitives": 22556,
+   "bytes": 203316
+  },
+  {
+   "tile": 21,
+   "src": "tiles/2_4.glb",
+   "primitives": 22774,
+   "bytes": 205276
+  },
+  {
+   "tile": 22,
+   "src": "tiles/2_5.glb",
+   "primitives": 22581,
+   "bytes": 203540
+  },
+  {
+   "tile": 23,
+   "src": "tiles/2_6.glb",
+   "primitives": 22469,
+   "bytes": 202532
+  },
+  {
+   "tile": 24,
+   "src": "tiles/2_7.glb",
+   "primitives": 22516,
+   "bytes": 202956
+  },
+  {
+   "tile": 25,
+   "src": "tiles/3_0.glb",
+   "primitives": 22625,
+   "bytes": 203948
+  },
+  {
+   "tile": 26,
+   "src": "tiles/3_1.glb",
+   "primitives": 22525,
+   "bytes": 203036
+  },
+  {
+   "tile": 27,
+   "src": "tiles/3_2.glb",
+   "primitives": 22691,
+   "bytes": 204540
+  },
+  {
+   "tile": 28,
+   "src": "tiles/3_3.glb",
+   "primitives": 22762,
+   "bytes": 205180
+  },
+  {
+   "tile": 29,
+   "src": "tiles/3_4.glb",
+   "primitives": 22661,
+   "bytes": 204260
+  },
+  {
+   "tile": 30,
+   "src": "tiles/3_5.glb",
+   "primitives": 22545,
+   "bytes": 203220
+  },
+  {
+   "tile": 31,
+   "src": "tiles/3_6.glb",
+   "primitives": 22749,
+   "bytes": 205060
+  },
+  {
+   "tile": 32,
+   "src": "tiles/3_7.glb",
+   "primitives": 22530,
+   "bytes": 203084
+  },
+  {
+   "tile": 33,
+   "src": "tiles/4_0.glb",
+   "primitives": 22739,
+   "bytes": 204964
+  },
+  {
+   "tile": 34,
+   "src": "tiles/4_1.glb",
+   "primitives": 22615,
+   "bytes": 203844
+  },
+  {
+   "tile": 35,
+   "src": "tiles/4_2.glb",
+   "primitives": 22738,
+   "bytes": 204956
+  },
+  {
+   "tile": 36,
+   "src": "tiles/4_3.glb",
+   "primitives": 22495,
+   "bytes": 202764
+  },
+  {
+   "tile": 37,
+   "src": "tiles/4_4.glb",
+   "primitives": 22747,
+   "bytes": 205036
+  },
+  {
+   "tile": 38,
+   "src": "tiles/4_5.glb",
+   "primitives": 22541,
+   "bytes": 203180
+  },
+  {
+   "tile": 39,
+   "src": "tiles/4_6.glb",
+   "primitives": 22606,
+   "bytes": 203764
+  },
+  {
+   "tile": 40,
+   "src": "tiles/4_7.glb",
+   "primitives": 22589,
+   "bytes": 203612
+  },
+  {
+   "tile": 41,
+   "src": "tiles/5_0.glb",
+   "primitives": 22543,
+   "bytes": 203196
+  },
+  {
+   "tile": 42,
+   "src": "tiles/5_1.glb",
+   "primitives": 22566,
+   "bytes": 203404
+  },
+  {
+   "tile": 43,
+   "src": "tiles/5_2.glb",
+   "primitives": 22600,
+   "bytes": 203708
+  },
+  {
+   "tile": 44,
+   "src": "tiles/5_3.glb",
+   "primitives": 22589,
+   "bytes": 203612
+  },
+  {
+   "tile": 45,
+   "src": "tiles/5_4.glb",
+   "primitives": 22532,
+   "bytes": 203100
+  },
+  {
+   "tile": 46,
+   "src": "tiles/5_5.glb",
+   "primitives": 22494,
+   "bytes": 202756
+  },
+  {
+   "tile": 47,
+   "src": "tiles/5_6.glb",
+   "primitives": 22690,
+   "bytes": 204524
+  },
+  {
+   "tile": 48,
+   "src": "tiles/5_7.glb",
+   "primitives": 22476,
+   "bytes": 202596
+  },
+  {
+   "tile": 49,
+   "src": "tiles/6_0.glb",
+   "primitives": 22564,
+   "bytes": 203388
+  },
+  {
+   "tile": 50,
+   "src": "tiles/6_1.glb",
+   "primitives": 22593,
+   "bytes": 203652
+  },
+  {
+   "tile": 51,
+   "src": "tiles/6_2.glb",
+   "primitives": 22619,
+   "bytes": 203884
+  },
+  {
+   "tile": 52,
+   "src": "tiles/6_3.glb",
+   "primitives": 22535,
+   "bytes": 203124
+  },
+  {
+   "tile": 53,
+   "src": "tiles/6_4.glb",
+   "primitives": 22477,
+   "bytes": 202604
+  },
+  {
+   "tile": 54,
+   "src": "tiles/6_5.glb",
+   "primitives": 22610,
+   "bytes": 203804
+  },
+  {
+   "tile": 55,
+   "src": "tiles/6_6.glb",
+   "primitives": 22762,
+   "bytes": 205164
+  },
+  {
+   "tile": 56,
+   "src": "tiles/6_7.glb",
+   "primitives": 22459,
+   "bytes": 202444
+  },
+  {
+   "tile": 57,
+   "src": "tiles/7_0.glb",
+   "primitives": 22697,
+   "bytes": 204588
+  },
+  {
+   "tile": 58,
+   "src": "tiles/7_1.glb",
+   "primitives": 22516,
+   "bytes": 202956
+  },
+  {
+   "tile": 59,
+   "src": "tiles/7_2.glb",
+   "primitives": 22454,
+   "bytes": 202396
+  },
+  {
+   "tile": 60,
+   "src": "tiles/7_3.glb",
+   "primitives": 22497,
+   "bytes": 202788
+  },
+  {
+   "tile": 61,
+   "src": "tiles/7_4.glb",
+   "primitives": 22611,
+   "bytes": 203812
+  },
+  {
+   "tile": 62,
+   "src": "tiles/7_5.glb",
+   "primitives": 22695,
+   "bytes": 204564
+  },
+  {
+   "tile": 63,
+   "src": "tiles/7_6.glb",
+   "primitives": 22602,
+   "bytes": 203732
+  },
+  {
+   "tile": 64,
+   "src": "tiles/7_7.glb",
+   "primitives": 22559,
+   "bytes": 203340
+  }
+ ]
+}

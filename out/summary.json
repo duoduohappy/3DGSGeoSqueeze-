@@ -1,0 +1,165 @@
+{
+ "passed": true,
+ "metrics": {
+  "n_orig": 26400,
+  "n_comp": 7920,
+  "keep_ratio": 0.3,
+  "voxel_iou": 0.2965,
+  "color_psnr": 24.191,
+  "orig_mb": 5.942,
+  "comp_mb": 0.389,
+  "ratio": 15.28,
+  "payload_mb": 0.12,
+  "opacity_mae": 0.0084,
+  "tiles": 28,
+  "tileset": "out\\tileset.json",
+  "gsq_mb": 0.12,
+  "psnr_render": 26.607,
+  "ssim_render": 0.9584,
+  "render_views": [
+   {
+    "view": 0,
+    "psnr": 28.8,
+    "psnr_mask": 18.74,
+    "ssim": 0.9641,
+    "coverage": 0.099
+   },
+   {
+    "view": 1,
+    "psnr": 24.16,
+    "psnr_mask": 14.44,
+    "ssim": 0.9496,
+    "coverage": 0.107
+   },
+   {
+    "view": 2,
+    "psnr": 28.83,
+    "psnr_mask": 18.86,
+    "ssim": 0.9652,
+    "coverage": 0.101
+   },
+   {
+    "view": 3,
+    "psnr": 24.64,
+    "psnr_mask": 14.92,
+    "ssim": 0.9545,
+    "coverage": 0.107
+   }
+  ],
+  "render_ms_per_view": 786.89,
+  "render_backend": "cpu_reference",
+  "gate": {
+   "psnr": true,
+   "iou": true,
+   "metric": "psnr_render",
+   "iou_floor": 0.255
+  }
+ },
+ "rounds": 1,
+ "viewer": "out\\viewer.html",
+ "history": [
+  {
+   "round": 0,
+   "metrics": {
+    "n_orig": 26400,
+    "n_comp": 7920,
+    "keep_ratio": 0.3,
+    "voxel_iou": 0.2965,
+    "color_psnr": 24.191,
+    "orig_mb": 5.942,
+    "comp_mb": 0.389,
+    "ratio": 15.28,
+    "payload_mb": 0.12,
+    "opacity_mae": 0.0084,
+    "tiles": 28,
+    "tileset": "out\\tileset.json",
+    "gsq_mb": 0.12,
+    "psnr_render": 26.607,
+    "ssim_render": 0.9584,
+    "render_views": [
+     {
+      "view": 0,
+      "psnr": 28.8,
+      "psnr_mask": 18.74,
+      "ssim": 0.9641,
+      "coverage": 0.099
+     },
+     {
+      "view": 1,
+      "psnr": 24.16,
+      "psnr_mask": 14.44,
+      "ssim": 0.9496,
+      "coverage": 0.107
+     },
+     {
+      "view": 2,
+      "psnr": 28.83,
+      "psnr_mask": 18.86,
+      "ssim": 0.9652,
+      "coverage": 0.101
+     },
+     {
+      "view": 3,
+      "psnr": 24.64,
+      "psnr_mask": 14.92,
+      "ssim": 0.9545,
+      "coverage": 0.107
+     }
+    ],
+    "render_ms_per_view": 786.89,
+    "render_backend": "cpu_reference",
+    "gate": {
+     "psnr": true,
+     "iou": true,
+     "metric": "psnr_render",
+     "iou_floor": 0.255
+    }
+   },
+   "passed": true
+  }
+ ],
+ "infos": [
+  {
+   "stage": "prune",
+   "ratio": 0.7,
+   "kept": 7920,
+   "method": "render",
+   "score_cut": 0.0841912180185318
+  },
+  {
+   "stage": "distill",
+   "degree_from": 3,
+   "degree_to": 1,
+   "coef_kept": 12,
+   "energy_compensated": true
+  },
+  {
+   "stage": "recover",
+   "iters": 3,
+   "lr": 1.5,
+   "grow": 1.06,
+   "psnr_before": 27.622,
+   "psnr_after": 28.856,
+   "ssim_before": 0.9617,
+   "ssim_after": 0.9655,
+   "delta_db": 1.23,
+   "resid": [
+    0.01838,
+    0.00744,
+    0.00399
+   ]
+  },
+  {
+   "stage": "quantize",
+   "pos_bits": 16,
+   "pos_mse": 4.357339378202596e-08,
+   "sh_mode": "vq",
+   "codebook": 256,
+   "sh_mse": 0.0009920643642544746,
+   "payload_bytes": 124944
+  }
+ ],
+ "tileset": "out\\tileset.json",
+ "gsq": "out\\scene.gsq",
+ "out_dir": "C:\\Users\\TempAdmin\\WorkBuddy\\2026-10-28-08-42-27\\out"
+}

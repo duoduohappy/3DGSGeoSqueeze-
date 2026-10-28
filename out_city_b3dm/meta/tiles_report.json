@@ -1,0 +1,43 @@
+{
+ "tileset": "out_city_b3dm\\tileset.json",
+ "tiles_in": 4,
+ "tiles_out": 4,
+ "pts_in": 14560,
+ "pts_out": 8881,
+ "bytes_in": 689984,
+ "bytes_out": 161036,
+ "ratio": 4.28,
+ "point_ratio": 1.64,
+ "mesh_tiles": 4,
+ "origin": [
+  5200299.9271047115,
+  4100300.056602001,
+  30029.378393589832
+ ],
+ "per_tile": [
+  {
+   "tile": 1,
+   "src": "tiles/0_0.b3dm",
+   "primitives": 2214,
+   "bytes": 39144
+  },
+  {
+   "tile": 2,
+   "src": "tiles/0_1.b3dm",
+   "primitives": 2226,
+   "bytes": 39344
+  },
+  {
+   "tile": 3,
+   "src": "tiles/1_0.b3dm",
+   "primitives": 2216,
+   "bytes": 39172
+  },
+  {
+   "tile": 4,
+   "src": "tiles/1_1.b3dm",
+   "primitives": 2225,
+   "bytes": 39328
+  }
+ ]
+}

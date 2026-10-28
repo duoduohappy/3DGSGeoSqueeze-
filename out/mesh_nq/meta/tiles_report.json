@@ -1,0 +1,176 @@
+{
+ "tileset": "out/mesh_nq\\tileset.json",
+ "tiles_in": 16,
+ "tiles_out": 16,
+ "pts_in": 0,
+ "pts_out": 0,
+ "bytes_in": 901604,
+ "bytes_out": 549749,
+ "ratio": 1.64,
+ "point_ratio": 0.0,
+ "mesh_tiles": 0,
+ "origin": [
+  239.99999924004078,
+  239.99999924004078,
+  19.916641235351562
+ ],
+ "mesh_out": 16,
+ "verts_in": 2976,
+ "verts_out": 2976,
+ "tris_in": 992,
+ "tris_out": 992,
+ "tri_keep": 1.0,
+ "tex_bytes_in": 809984,
+ "tex_bytes_out": 443840,
+ "tex_ratio": 1.82,
+ "tex_psnr_min": 38.7,
+ "tex_psnr_mean": 40.23,
+ "geom_quant_step": 0.0,
+ "viewer": "out/mesh_nq\\mesh_viewer.html",
+ "per_tile": [
+  {
+   "tile": 1,
+   "src": "tiles/0_0.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33580,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 2,
+   "src": "tiles/0_1.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33584,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 3,
+   "src": "tiles/0_2.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33576,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 4,
+   "src": "tiles/0_3.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33576,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 5,
+   "src": "tiles/1_0.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33580,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 6,
+   "src": "tiles/1_1.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33584,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 7,
+   "src": "tiles/1_2.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33576,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 8,
+   "src": "tiles/1_3.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33580,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 9,
+   "src": "tiles/2_0.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33576,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 10,
+   "src": "tiles/2_1.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33580,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 11,
+   "src": "tiles/2_2.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33576,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 12,
+   "src": "tiles/2_3.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33572,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 13,
+   "src": "tiles/3_0.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33576,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 14,
+   "src": "tiles/3_1.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33576,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 15,
+   "src": "tiles/3_2.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33572,
+   "tex_psnr": 38.7
+  },
+  {
+   "tile": 16,
+   "src": "tiles/3_3.b3dm",
+   "kind": "mesh",
+   "verts": 186,
+   "tris": 62,
+   "bytes": 33572,
+   "tex_psnr": 38.7
+  }
+ ]
+}

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh"><head><meta charset="utf-8">
+<title>GeoSqueeze · CesiumJS 查看器</title>
+<link href="https://unpkg.com/cesium@1.120.0/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;background:#0b0f19;overflow:hidden}
+#cesiumContainer{width:100%;height:100%}
+#hud{position:fixed;top:10px;left:10px;color:#e8ecf5;background:rgba(10,14,25,.78);
+ padding:8px 12px;border-radius:8px;font:13px/1.6 system-ui;z-index:9;white-space:pre;
+ border:1px solid rgba(255,255,255,.12)}
+#hud b{color:#7dd3fc}
+</style></head><body>
+<div id="cesiumContainer"></div><div id="hud">加载 CesiumJS（CDN，首次需联网）…</div>
+<script>window.CESIUM_BASE_URL="https://unpkg.com/cesium@1.120.0/Build/Cesium";</script>
+<script src="https://unpkg.com/cesium@1.120.0/Build/Cesium/Cesium.js"></script>
+<script>
+const hud = document.getElementById('hud');
+const errs = [];
+window.onerror = (m, src, l, c) => { errs.push(m + ' @' + l + ':' + c); };
+window.addEventListener('unhandledrejection', e => errs.push(String(e.reason && e.reason.message || e.reason)));
+(async function(){
+ try {
+  const viewer = new Cesium.Viewer('cesiumContainer', {
+    baseLayer: false, baseLayerPicker: false, geocoder: false, homeButton: false,
+    sceneModePicker: false, navigationHelpButton: false, animation: false,
+    timeline: false, fullscreenButton: false, infoBox: false,
+    selectionIndicator: false, shadows: false,
+  });
+  const s = viewer.scene;
+  s.globe.show = false; s.skyBox.show = false; s.skyAtmosphere.show = false;
+  s.fog.enabled = false; s.sun.show = false; s.moon.show = false;
+  s.backgroundColor = Cesium.Color.fromCssColorString('#0b0f19');
+  viewer.cesiumWidget.creditContainer.style.display = 'none';
+  viewer.scene.debugShowFramesPerSecond = false;
+
+  hud.textContent = '加载 tileset.json…';
+  const ts = await Cesium.Cesium3DTileset.fromUrl('tileset.json',
+      {maximumScreenSpaceError: 1000, skipLevelOfDetail: false});
+  ts.debugShowBoundingVolume = true;
+  s.primitives.add(ts);
+  // 本地坐标（米级）渲染：相机直接对准场景包围盒中心
+  const c = ts.boundingSphere.center, r = ts.boundingSphere.radius;
+  s.camera.lookAt(c, new Cesium.HeadingPitchRange(
+      Cesium.Math.toRadians(-40), Cesium.Math.toRadians(-25), r * 2.6));
+  s.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);   // 解除锁定，保留自由轨道/缩放
+  window._gqTileset = ts;
+
+  const t0 = performance.now();
+  let dbg = '';
+  (function walk(t, d){ if (d > 2 || !t) return;
+    const c = t.boundingSphere ? t.boundingSphere.center : {x:0,y:0,z:0};
+    const tr = t.transform ? Array.from(t.transform).slice(12,15).map(v=>v.toFixed(0)) : '-';
+    dbg += `\nL${d} tr=${tr} bsc=(${c.x.toFixed(0)},${c.y.toFixed(0)},${c.z.toFixed(0)})`;
+    (t.children || []).forEach(k => walk(k, d+1)); })(ts.root, 0);
+  s.postRender.addEventListener(function tick(){
+    const st = ts.statistics || {};
+    hud.innerHTML = '<b>GeoSqueeze × CesiumJS</b>（标准 3D Tiles 直读）\n' +
+      `瓦片就绪 ${ts.tilesLoaded ? '是' : '否'} · 总数 ${st.numberOfTilesTotal ?? '-'} · ` +
+      `加载中 ${ts.tilesRequested - ts.tilesLoaded ?? 0}\n` +
+      `渲染点/三角形累计 ${(st.numberOfPointsLoaded ?? 0).toLocaleString()} 点 · ` +
+      `耗时 ${((performance.now() - t0) / 1000).toFixed(1)}s\n` +
+      '左键轨道 · 右键平移 · 滚轮缩放' + dbg +
+      (errs.length ? `\n<span style="color:#fbb">错误: ${errs.join(' | ')}</span>` : '');
+    requestAnimationFrame(tick);
+  });
+  ts.tileFailed.addEventListener(t => errs.push(t.uri + ' ' + t.error));
+ } catch (e) { errs.push(String(e && e.message || e)); hud.textContent = '错误: ' + errs.join(' | '); }
+})();
+</script></body></html>

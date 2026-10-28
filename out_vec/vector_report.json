@@ -1,0 +1,39 @@
+{
+ "gvec": "out_vec\\layer.gvec",
+ "single": {
+  "vertices_in": 14199,
+  "vertices_out": 10095,
+  "vertex_ratio": 1.41,
+  "vertex_reduction": 0.289,
+  "max_dev": 0.1379,
+  "len_rel_err": 7.8e-05,
+  "area_rel_err": 3.5e-05,
+  "features": 1728,
+  "bytes_in": 565657,
+  "bytes_out": 52933,
+  "ratio": 10.69,
+  "gvec_bytes": 52933,
+  "header_bytes": 2347
+ },
+ "tiles": {
+  "manifest": "out_vec\\vector_tiles.json",
+  "bytes": 267239,
+  "levels": 4,
+  "tiles": 85,
+  "vertices": [
+   2112,
+   2428,
+   2836,
+   3330
+  ]
+ },
+ "simplify": {
+  "vertices_in": 14199,
+  "vertices_out": 10095,
+  "reduction": 0.289,
+  "tol": 0.35
+ },
+ "srs": "urn:ogc:def:crs:EPSG::4547",
+ "features": 1728,
+ "vertices": 14199
+}

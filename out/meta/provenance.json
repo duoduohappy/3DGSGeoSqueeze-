@@ -1,0 +1,12 @@
+{
+ "tool": "GeoSqueeze",
+ "version": "0.1.0",
+ "input_fingerprint": "6f7861212864c41d",
+ "platform": "web",
+ "rounds": 1,
+ "elapsed_s": 23.98,
+ "input": {
+  "source": "data/sample.ply",
+  "format": "ply"
+ }
+}

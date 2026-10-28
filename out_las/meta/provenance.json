@@ -1,0 +1,29 @@
+{
+ "tool": "GeoSqueeze",
+ "version": "0.1.0",
+ "input_fingerprint": "d55ce4475b80bd58",
+ "platform": "web",
+ "rounds": 1,
+ "elapsed_s": 2.28,
+ "input": {
+  "source": "data/sample.las",
+  "format": "las",
+  "las_version": "1.2",
+  "point_format": 2,
+  "scale": [
+   0.001,
+   0.001,
+   0.001
+  ],
+  "offset_xyz": [
+   -1000.0,
+   -1000.0,
+   -1000.0
+  ],
+  "has_color": true,
+  "spacing": 0.51932,
+  "classification": {
+   "1": 6000
+  }
+ }
+}

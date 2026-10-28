@@ -1,0 +1,756 @@
+{
+ "asset": {
+  "version": "1.1",
+  "generator": "GeoSqueeze-sample",
+  "gltfUpAxis": "Z"
+ },
+ "extras": {
+  "geosqueeze": {
+   "generator": "sample-mesh",
+   "upAxis": "Z"
+  }
+ },
+ "geometricError": 480.0,
+ "root": {
+  "boundingVolume": {
+   "box": [
+    240.0,
+    240.0,
+    20.0,
+    240.0,
+    0,
+    0,
+    0,
+    240.0,
+    0,
+    0,
+    0,
+    40.0
+   ]
+  },
+  "geometricError": 120.0,
+  "refine": "REPLACE",
+  "children": [
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/0_0.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0.0,
+     0.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/0_1.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0.0,
+     120.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/0_2.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0.0,
+     240.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/0_3.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0.0,
+     360.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/1_0.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     120.0,
+     0.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/1_1.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     120.0,
+     120.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/1_2.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     120.0,
+     240.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/1_3.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     120.0,
+     360.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/2_0.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     240.0,
+     0.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/2_1.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     240.0,
+     120.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/2_2.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     240.0,
+     240.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/2_3.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     240.0,
+     360.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/3_0.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     360.0,
+     0.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/3_1.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     360.0,
+     120.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/3_2.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     360.0,
+     240.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      60.0,
+      60.0,
+      20.0,
+      60.0,
+      0,
+      0,
+      0,
+      60.0,
+      0,
+      0,
+      0,
+      40.0
+     ]
+    },
+    "geometricError": 2.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/3_3.b3dm"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     360.0,
+     360.0,
+     0.0,
+     1
+    ],
+    "extras": {
+     "tris": 62,
+     "verts": 124
+    }
+   }
+  ]
+ }
+}

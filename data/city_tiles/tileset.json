@@ -1,0 +1,431 @@
+{
+ "asset": {
+  "version": "1.1",
+  "generator": "GeoSqueeze-sample"
+ },
+ "extras": {
+  "geosqueeze": {
+   "generator": "sample",
+   "upAxis": "Z"
+  }
+ },
+ "geometricError": 600.0,
+ "root": {
+  "boundingVolume": {
+   "box": [
+    5200300.0,
+    4100300.0,
+    30040.0,
+    300.0,
+    0,
+    0,
+    0,
+    300.0,
+    0,
+    0,
+    0,
+    200.0
+   ]
+  },
+  "geometricError": 150.0,
+  "refine": "REPLACE",
+  "children": [
+   {
+    "boundingVolume": {
+     "box": [
+      5200100.0,
+      4100100.0,
+      30040.0,
+      100.0,
+      0,
+      0,
+      0,
+      100.0,
+      0,
+      0,
+      0,
+      200.0
+     ]
+    },
+    "geometricError": 4.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/0_0.glb"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     5200100.0,
+     4100100.0,
+     30000.0,
+     1
+    ],
+    "extras": {
+     "primitives": 5500
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      5200100.0,
+      4100300.0,
+      30040.0,
+      100.0,
+      0,
+      0,
+      0,
+      100.0,
+      0,
+      0,
+      0,
+      200.0
+     ]
+    },
+    "geometricError": 4.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/0_1.glb"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     5200100.0,
+     4100300.0,
+     30000.0,
+     1
+    ],
+    "extras": {
+     "primitives": 5500
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      5200100.0,
+      4100500.0,
+      30040.0,
+      100.0,
+      0,
+      0,
+      0,
+      100.0,
+      0,
+      0,
+      0,
+      200.0
+     ]
+    },
+    "geometricError": 4.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/0_2.glb"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     5200100.0,
+     4100500.0,
+     30000.0,
+     1
+    ],
+    "extras": {
+     "primitives": 5500
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      5200300.0,
+      4100100.0,
+      30040.0,
+      100.0,
+      0,
+      0,
+      0,
+      100.0,
+      0,
+      0,
+      0,
+      200.0
+     ]
+    },
+    "geometricError": 4.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/1_0.glb"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     5200300.0,
+     4100100.0,
+     30000.0,
+     1
+    ],
+    "extras": {
+     "primitives": 5500
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      5200300.0,
+      4100300.0,
+      30040.0,
+      100.0,
+      0,
+      0,
+      0,
+      100.0,
+      0,
+      0,
+      0,
+      200.0
+     ]
+    },
+    "geometricError": 4.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/1_1.glb"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     5200300.0,
+     4100300.0,
+     30000.0,
+     1
+    ],
+    "extras": {
+     "primitives": 5500
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      5200300.0,
+      4100500.0,
+      30040.0,
+      100.0,
+      0,
+      0,
+      0,
+      100.0,
+      0,
+      0,
+      0,
+      200.0
+     ]
+    },
+    "geometricError": 4.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/1_2.glb"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     5200300.0,
+     4100500.0,
+     30000.0,
+     1
+    ],
+    "extras": {
+     "primitives": 5500
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      5200500.0,
+      4100100.0,
+      30040.0,
+      100.0,
+      0,
+      0,
+      0,
+      100.0,
+      0,
+      0,
+      0,
+      200.0
+     ]
+    },
+    "geometricError": 4.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/2_0.glb"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     5200500.0,
+     4100100.0,
+     30000.0,
+     1
+    ],
+    "extras": {
+     "primitives": 5500
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      5200500.0,
+      4100300.0,
+      30040.0,
+      100.0,
+      0,
+      0,
+      0,
+      100.0,
+      0,
+      0,
+      0,
+      200.0
+     ]
+    },
+    "geometricError": 4.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/2_1.glb"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     5200500.0,
+     4100300.0,
+     30000.0,
+     1
+    ],
+    "extras": {
+     "primitives": 5500
+    }
+   },
+   {
+    "boundingVolume": {
+     "box": [
+      5200500.0,
+      4100500.0,
+      30040.0,
+      100.0,
+      0,
+      0,
+      0,
+      100.0,
+      0,
+      0,
+      0,
+      200.0
+     ]
+    },
+    "geometricError": 4.0,
+    "refine": "REPLACE",
+    "content": {
+     "uri": "tiles/2_2.glb"
+    },
+    "transform": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     5200500.0,
+     4100500.0,
+     30000.0,
+     1
+    ],
+    "extras": {
+     "primitives": 5500
+    }
+   }
+  ]
+ }
+}
