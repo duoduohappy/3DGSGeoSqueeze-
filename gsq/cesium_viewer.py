@@ -84,7 +84,7 @@ if (VFS) {
   viewer.cesiumWidget.creditContainer.style.display = 'none';
   viewer.scene.debugShowFramesPerSecond = false;
 
-  hud.textContent = '加载 tileset.json…';
+  hud.textContent = '加载 tileset.json…（在线大文件/网络慢时请耐心等待，出错会显示在此）';
   const qsp = new URLSearchParams(location.search);
   const qsts = qsp.get('ts') || 'tileset.json';
   const tsUrl = VFS ? ('vfile:///' + qsts) : qsts;

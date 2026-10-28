@@ -47,22 +47,56 @@ _PRESETS = {
 }
 
 
-def _fetch(url: str, timeout: int = 60) -> bytes:
-    """按 env 代理 → 直连 → 本地常见代理端口 的顺序尝试获取远端字节。"""
+def _proxy_handlers() -> list:
+    """候选链路：env 代理 → 直连 → 本地常见代理端口（去重）。"""
     env = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy") \
         or os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy")
-    chains = [urllib.request.ProxyHandler({"http": env, "https": env}) if env else None,
-              urllib.request.ProxyHandler({}),
-              urllib.request.ProxyHandler({"http": "http://127.0.0.1:7897",
-                                           "https": "http://127.0.0.1:7897"})]
-    last = None
-    for h in filter(None, chains):
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "GeoSqueeze-TestBench/1.0"})
-            return urllib.request.build_opener(h).open(req, timeout=timeout).read()
-        except Exception as e:  # 逐个回退
-            last = e
-    raise RuntimeError(f"获取 {url} 失败: {last}")
+    out = []
+    if env:
+        out.append(urllib.request.ProxyHandler({"http": env, "https": env}))
+    out.append(urllib.request.ProxyHandler({}))  # 直连
+    out.append(urllib.request.ProxyHandler({"http": "http://127.0.0.1:7897",
+                                            "https": "http://127.0.0.1:7897"}))
+    # 按 handler 的 __proxy__ 标记去重（直连与 env 相同值时）
+    seen, uniq = set(), []
+    for h in out:
+        key = tuple(sorted(getattr(h, "proxies", {}).items()))
+        if key not in seen:
+            seen.add(key)
+            uniq.append(h)
+    return uniq
+
+
+def _fetch(url: str, timeout: int = 45) -> bytes:
+    """三条链路并发竞速取回远端字节——坏代理不再阻塞后续尝试。
+
+    之前串行回退时，env 中已失效的代理会先挂满超时才轮到可用链路，
+    导致浏览器端 Cesium 请求长时间 pending（界面卡在"加载 tileset.json…"）。
+    """
+    from concurrent.futures import ThreadPoolExecutor, FIRST_COMPLETED, wait
+
+    handlers = _proxy_handlers()
+
+    def attempt(h):
+        req = urllib.request.Request(url, headers={"User-Agent": "GeoSqueeze-TestBench/1.0"})
+        with urllib.request.build_opener(h).open(req, timeout=timeout) as r:
+            return r.read()
+
+    ex = ThreadPoolExecutor(max_workers=len(handlers))
+    try:
+        futs = {ex.submit(attempt, h): h for h in handlers}
+        last = None
+        while futs:
+            done, _ = wait(list(futs), return_when=FIRST_COMPLETED)
+            for f in done:
+                futs.pop(f, None)
+                try:
+                    return f.result()
+                except Exception as e:
+                    last = e
+        raise RuntimeError(f"获取 {url} 失败（env代理/直连/7897 均不可用）: {last}")
+    finally:
+        ex.shutdown(wait=False)
 
 
 def _stats_tiles_json(data: bytes, url: str) -> dict:
@@ -128,13 +162,24 @@ class _Bench:
         return {"stats": st, "view": f"/cesium.html?ts=/p/{b64}/tileset.json"}
 
     def proxy(self, b64: str, rel: str):
+        import hashlib
         pad = "=" * (-len(b64) % 4)
         url = base64.urlsafe_b64decode(b64 + pad).decode()
-        remote = urllib.parse.urljoin(url if rel == "tileset.json" else url, rel)
         if rel != "tileset.json":  # 内容 uri 相对 tileset.json 所在目录
             base = url.rsplit("/", 1)[0] + "/"
-            remote = urllib.parse.urljoin(base, rel)
-        return _fetch(remote)
+        else:
+            base = url
+        remote = urllib.parse.urljoin(base, rel)
+        # 磁盘缓存：同一远端文件只取一次（代理链路波动时不重复下载）
+        key = hashlib.sha1(remote.encode()).hexdigest()
+        cp = os.path.join(self.work, "_cache", key)
+        if os.path.isfile(cp):
+            return open(cp, "rb").read()
+        data = _fetch(remote)
+        os.makedirs(os.path.dirname(cp), exist_ok=True)
+        with open(cp, "wb") as f:
+            f.write(data)
+        return data
 
     # ---- 上传 3D Tiles zip ----
     def tiles_zip(self, name: str, zb: bytes) -> dict:
@@ -357,10 +402,21 @@ class _Handler(BaseHTTPRequestHandler):
 _CDN_REF = "https://unpkg.com/cesium@1.120.0/Build/Cesium"  # 与 cesium_viewer 保持一致
 
 
+class _Server(ThreadingHTTPServer):
+    # Windows 上 SO_REUSEADDR 允许两个进程绑定同一端口（连接被随机分发、症状是偶发卡死），
+    # 关掉复用改为独占绑定：端口被占用时明确报错，而不是静默双绑
+    allow_reuse_address = False
+    daemon_threads = True
+    request_queue_size = 64
+
+
 def serve_testbench(port: int = 8619, work: str = "out/testbench") -> None:
     """启动测试工作台 HTTP 服务（阻塞）。"""
     _Handler.bench = _Bench(work)
-    srv = ThreadingHTTPServer(("127.0.0.1", port), _Handler)
+    try:
+        srv = _Server(("127.0.0.1", port), _Handler)
+    except OSError as e:
+        raise RuntimeError(f"端口 {port} 已被占用（可能上一次的 testbench 还在跑）: {e}") from e
     print(f"GeoSqueeze 测试工作台 → http://127.0.0.1:{port}/  （Ctrl+C 退出）")
     print(f"  工作目录: {os.path.abspath(work)}")
     try:
