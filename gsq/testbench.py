@@ -29,8 +29,13 @@ from .vector import compress_vector
 from .tiles_in import scan_tileset
 
 _MAX_UPLOAD = 300 * 1024 * 1024  # 上传 zip 上限
+_CACHE_MAX = 1024 ** 3           # 反代磁盘缓存上限（1GB），超出按最旧访问淘汰
 _PRESETS = {
     "tiles": [
+        ["3DBAG 荷兰全国建筑 · LoD2.2（真实生产数据，CC BY 4.0）",
+         "https://data.3dbag.nl/v20250903/cesium3dtiles/lod22/tileset.json"],
+        ["3DBAG 荷兰全国建筑 · LoD1.2（轻量，加载快）",
+         "https://data.3dbag.nl/v20250903/cesium3dtiles/lod12/tileset.json"],
         ["GeoSqueeze 带纹理城市（本仓库 raw）",
          "https://raw.githubusercontent.com/duoduohappy/3DGSGeoSqueeze-/main/out/mesh_city/tileset.json"],
         ["Cesium 官方样例 · TreeBillboards（1.0）",
@@ -99,11 +104,17 @@ def _fetch(url: str, timeout: int = 45) -> bytes:
         ex.shutdown(wait=False)
 
 
-def _stats_tiles_json(data: bytes, url: str) -> dict:
-    """轻量解析 tileset.json：版本 / 瓦片数 / 内容格式分布 / 根包围盒。"""
+def _stats_tiles_json(data: bytes, url: str, fetch=None, max_external: int = 3) -> dict:
+    """轻量解析 tileset.json：版本 / 瓦片数 / 内容格式分布 / 根包围盒。
+
+    3D Tiles 1.1 的大规模数据集（如 3DBAG 全国）根层通常只做空间索引，内容以
+    「外部 tileset」形式递归引用。此时区分统计：内容瓦片格式 + 外部 tileset 数量，
+    并抽样抓取至多 max_external 个外部 tileset 以给出真实内容格式。
+    """
     ts = json.loads(data)
     root = ts.get("root") or {}
     fmt: dict[str, int] = {}
+    ext_list: list[str] = []
     n = [0]
 
     def walk(t):
@@ -112,16 +123,40 @@ def _stats_tiles_json(data: bytes, url: str) -> dict:
         for c in (ct if isinstance(ct, list) else [ct] if ct else []):
             uri = str(c.get("uri") or c.get("url") or "")
             ext = os.path.splitext(uri)[1].lstrip(".").lower() or "?"
-            fmt[ext] = fmt.get(ext, 0) + 1
+            if ext == "json":
+                ext_list.append(uri)     # 外部 tileset，内容在别处
+            else:
+                fmt[ext] = fmt.get(ext, 0) + 1
         for c in (t.get("children") or []):
             walk(c)
 
     walk(root)
     if root.get("implicitTiling"):
         fmt["implicit"] = fmt.get("implicit", 0) + 1
+
+    sampled = 0
+    if fetch and ext_list:
+        base = url.rsplit("/", 1)[0] + "/"
+        for uri in ext_list[:max_external]:
+            try:
+                sub = json.loads(fetch(urllib.parse.urljoin(base, uri)))
+            except Exception:
+                continue
+            sampled += 1
+            stack = [sub.get("root") or {}]
+            while stack:
+                t = stack.pop()
+                ct = t.get("content")
+                for c in (ct if isinstance(ct, list) else [ct] if ct else []):
+                    e = os.path.splitext(str(c.get("uri") or ""))[1].lstrip(".").lower() or "?"
+                    if e != "json":
+                        fmt[e] = fmt.get(e, 0) + 1
+                stack.extend(x for x in (t.get("children") or []) if isinstance(x, dict))
+
     return {"url": url, "version": (ts.get("asset") or {}).get("version"),
             "gltfUpAxis": (ts.get("asset") or {}).get("gltfUpAxis"),
             "tiles": n[0], "formats": fmt,
+            "external_tilesets": len(ext_list), "sampled": sampled,
             "root_bv": "box" if "box" in root.get("boundingVolume", {}) else
                        "region" if "region" in root.get("boundingVolume", {}) else
                        "sphere" if "sphere" in root.get("boundingVolume", {}) else "-"}
@@ -149,6 +184,7 @@ class _Bench:
         self.work = os.path.abspath(work)
         os.makedirs(self.work, exist_ok=True)
         self.json_cache: dict[str, bytes] = {}
+        self._n_write = 0
 
     def new_id(self) -> str:
         return time.strftime("%H%M%S") + f"{int(time.time()*1000) % 1000:03d}"
@@ -157,7 +193,7 @@ class _Bench:
     def tiles_url(self, url: str) -> dict:
         data = self.json_cache.get(url) or _fetch(url)
         self.json_cache[url] = data
-        st = _stats_tiles_json(data, url)
+        st = _stats_tiles_json(data, url, fetch=_fetch)
         b64 = base64.urlsafe_b64encode(url.encode()).decode().rstrip("=")
         return {"stats": st, "view": f"/cesium.html?ts=/p/{b64}/tileset.json"}
 
@@ -179,7 +215,36 @@ class _Bench:
         os.makedirs(os.path.dirname(cp), exist_ok=True)
         with open(cp, "wb") as f:
             f.write(data)
+        self._n_write += 1
+        if self._n_write % 20 == 0:      # 每 20 次写盘检查一次容量，避免频繁遍历目录
+            self._evict_cache()
         return data
+
+    def _evict_cache(self) -> None:
+        """缓存超过 _CACHE_MAX 时按最旧访问时间淘汰（全国级数据集可达 GB 量级）。"""
+        d = os.path.join(self.work, "_cache")
+        try:
+            items = []
+            for f in os.listdir(d):
+                p = os.path.join(d, f)
+                try:
+                    items.append((os.path.getmtime(p), os.path.getsize(p), p))
+                except OSError:
+                    continue
+        except OSError:
+            return
+        total = sum(i[1] for i in items)
+        if total <= _CACHE_MAX:
+            return
+        items.sort()
+        for _, sz, p in items:
+            if total <= _CACHE_MAX * 0.8:
+                break
+            try:
+                os.remove(p)
+                total -= sz
+            except OSError:
+                pass
 
     # ---- 上传 3D Tiles zip ----
     def tiles_zip(self, name: str, zb: bytes) -> dict:

@@ -16,3 +16,4 @@ data/city_big/
 # 测试工作台运行时产物
 out/testbench/
 _diag_shot.py
+_shot.py

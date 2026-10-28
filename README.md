@@ -175,12 +175,15 @@ python -m gsq serve out_mesh        # 大数据集（>8MB）回退外链版，�
 3. **上传 3D Tiles zip**：解压（防 zip-slip）→ 结构校验 → 自动生成内嵌 cesium.html（≤8MB）/外链渲染
 4. **上传矢量 zip**（.geojson/.json）→ compress-vector → 查看器渲染
 
-界面含预设下拉（已验证的公开源：本仓库 raw 带纹理城市、Cesium 官方 3d-tiles-samples、world.geo.json 国家边界）。实测记录（截图见 `out/testbench_*.png`）：
+界面含预设下拉（已验证的公开源）。实测记录（截图见 `out/testbench_*.png`）：
 
+- **3DBAG 荷兰全国建筑**（真实生产数据，CC BY 4.0，3D Tiles 1.1）：根 tileset 含 474 个外部子 tileset + glb 内容瓦片，反代递归加载、961 瓦片就绪渲染成功。统计通道会识别外部 tileset 并抽样统计真实内容格式；反代磁盘缓存上限 1GB（超出按最旧淘汰），避免全国级数据撑爆磁盘。版本号 `v20250903` 随官方发布更新，若失效请到 [3dbag.nl](https://3dbag.nl/en/download) 取新地址
 - 在线自有城市 17 瓦片经反代在线加载，Cesium 完整渲染
 - world.geo.json 293 要素 → 压缩 15.0x、最大偏离 0.061m，查看器世界地图正确
 - zip 上传（带一层根目录）解压校验 16 b3dm → 内嵌单文件渲染
-- Cesium 官方 TilesetWithTreeBillboards（3D Tiles 1.0 / i3dm / ECEF 坐标 / Y-up）正确加载渲染——`cesium.html` 新增上轴自适应：默认读 `asset.gltfUpAxis`，无声明按 3D Tiles 默认（Y-up 旋转），`?up=z|y|x` 可强制；ECEF 尺度数据建议加 `?nolog=1`（对数深度）
+- Cesium 官方 TilesetWithTreeBillboards（3D Tiles 1.0 / i3dm / ECEF 坐标 / Y-up）正确加载渲染——`cesium.html` 新增上轴自适应：默认读 `asset.gltfUpAxis`，无声明按 3D Tiles 默认（Y-up 旋转），`?up=z|y|x` 可强制
+
+查看器对 **ECEF 地球尺度数据自动适配**：预取根 tileset.json 判断包围盒中心是否接近地球半径，是则自动开启对数深度缓冲（否则深度精度不足会导致远处瓦片闪烁/整片不可见），并把默认相机距离收紧到 `r*0.04`（夹在 1.2~6km），打开即可看到单体建筑；`?lat=52.37&lon=4.90` 可指定观察点，`?log=1` / `?nolog=1` 强制开/关对数深度。
 
 代理说明：后端反代按 `HTTPS_PROXY 环境变量 → 直连 → 127.0.0.1:7897` 顺序自动探测。
 

@@ -70,45 +70,59 @@ if (VFS) {
 }
 (async function(){
  try {
+  const qsp = new URLSearchParams(location.search);
+  const qsts = qsp.get('ts') || 'tileset.json';
+  // 预取根 tileset.json：一次请求同时决定「上轴 / 是否地球尺度 / 默认相机距离」
+  let rootJson = null;
+  try {
+    if (VFS) {
+      const rb = VFS['vfile:///' + qsts];
+      if (rb) rootJson = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(rb), c => c.charCodeAt(0))));
+    } else {
+      rootJson = await (await fetch(qsts)).json();
+    }
+  } catch (e) { rootJson = null; }
+  function bvFirst3(bv) {
+    if (!bv) return null;
+    if (Array.isArray(bv.box) && bv.box.length >= 3) return bv.box.slice(0, 3);
+    if (Array.isArray(bv.sphere) && bv.sphere.length >= 3) return bv.sphere.slice(0, 3);
+    return null;
+  }
+  const rc0 = rootJson && bvFirst3((rootJson.root || {}).boundingVolume);
+  // 地球尺度（ECEF）：boundingVolume 中心模长接近地球半径
+  const isEcef = !!rc0 && Math.sqrt(rc0[0]*rc0[0] + rc0[1]*rc0[1] + rc0[2]*rc0[2]) > 6.0e6;
+  // 对数深度缓冲：地球尺度数据必须开（否则深度精度不足，远处瓦片闪烁/整片不可见）；
+  // 局部小场景默认关，?log=1 强制开，?nolog=1 强制关
+  const useLogDepth = qsp.has('nolog') ? false : (qsp.has('log') || isEcef);
+  hud.textContent = '创建渲染器…';
   const viewer = new Cesium.Viewer('cesiumContainer', {
     baseLayer: false, baseLayerPicker: false, geocoder: false, homeButton: false,
     sceneModePicker: false, navigationHelpButton: false, animation: false,
     timeline: false, fullscreenButton: false, infoBox: false,
     selectionIndicator: false, shadows: false,
+    contextOptions: { webgl: { logarithmicDepthBuffer: useLogDepth } },
   });
   const s = viewer.scene;
   s.globe.show = false; s.skyBox.show = false; s.skyAtmosphere.show = false;
   s.fog.enabled = false; s.sun.show = false; s.moon.show = false;
-  s.logarithmicDepthBuffer = new URLSearchParams(location.search).has('nolog');
   s.backgroundColor = Cesium.Color.fromCssColorString('#0b0f19');
   viewer.cesiumWidget.creditContainer.style.display = 'none';
   viewer.scene.debugShowFramesPerSecond = false;
 
-  hud.textContent = '加载 tileset.json…（在线大文件/网络慢时请耐心等待，出错会显示在此）';
-  const qsp = new URLSearchParams(location.search);
-  const qsts = qsp.get('ts') || 'tileset.json';
+  hud.textContent = '加载瓦片…（在线大文件/网络慢时请耐心等待，出错会显示在此）';
   const tsUrl = VFS ? ('vfile:///' + qsts) : qsts;
   // 上轴：?up=z|y|x 强制指定；缺省 auto——读 tileset.asset.gltfUpAxis（"Z" → Z-up 直存，
   // 无声明按 3D Tiles 默认交由 Cesium 做 Y-up→Z-up 旋转），兼容外部标准数据
-  async function detectUpAxis() {
+  function detectUpAxis() {
     const up = qsp.get('up');
     if (up === 'z') return Cesium.Axis.Z;
     if (up === 'y') return Cesium.Axis.Y;
     if (up === 'x') return Cesium.Axis.X;
-    try {
-      let asset;
-      if (VFS) {
-        const b64 = VFS['vfile:///' + qsts];
-        if (!b64) return null;
-        asset = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), c => c.charCodeAt(0)))).asset;
-      } else {
-        asset = (await (await fetch(qsts)).json()).asset;
-      }
-      return (asset && asset.gltfUpAxis === 'Z') ? Cesium.Axis.Z : null;
-    } catch (e) { return null; }
+    const asset = rootJson && rootJson.asset;   // 复用预取结果，不再重复请求
+    return (asset && asset.gltfUpAxis === 'Z') ? Cesium.Axis.Z : null;
   }
   const opts = {maximumScreenSpaceError: 8, skipLevelOfDetail: false, backFaceCulling: false};
-  const ua = await detectUpAxis();
+  const ua = detectUpAxis();
   if (ua) { opts.modelUpAxis = ua; opts.modelForwardAxis = Cesium.Axis.X; }
   const ts = await Cesium.Cesium3DTileset.fromUrl(tsUrl, opts);
   s.primitives.add(ts);
@@ -123,14 +137,24 @@ if (VFS) {
   }
   const c = bs.center, r = bs.radius;
   window._gqR = r;
-  s.camera.lookAt(c, new Cesium.HeadingPitchRange(0,
-      qsp.get('top') ? -Math.PI/2 : Cesium.Math.toRadians(+(qsp.get('pitch') || -90)),
-      qsp.get('d') ? +qsp.get('d') : r * 2.6));
+  // 默认相机距离：地球尺度数据（全国/省域级，如 3DBAG 全国建筑）取 r*0.04 并夹到
+  // 1.2~6km，打开即可看到单体建筑细节；局部小场景沿用 r*2.6 的全局视角
+  const dDef = qsp.get('d') ? +qsp.get('d')
+      : (isEcef ? Math.min(Math.max(r * 0.04, 1200), 6000) : r * 2.6);
+  const qlat = qsp.get('lat'), qlon = qsp.get('lon');
+  if (qlat && qlon) {   // ?lat=52.37&lon=4.90 指定观察点（经纬度）
+    s.camera.lookAt(Cesium.Cartesian3.fromDegrees(+qlon, +qlat, 0),
+        new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(+(qsp.get('pitch') || -45)), dDef));
+  } else {
+    s.camera.lookAt(c, new Cesium.HeadingPitchRange(0,
+        qsp.get('top') ? -Math.PI/2 : Cesium.Math.toRadians(+(qsp.get('pitch') || -90)),
+        dDef));
+  }
   s.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);   // 解除锁定，保留自由轨道/缩放
   window._gqTileset = ts;
 
   const t0 = performance.now();
-  let dbg = VFS ? ' · 内嵌单文件' : '';
+  let dbg = (VFS ? ' · 内嵌单文件' : '') + (isEcef ? ' · ECEF/对数深度' : '');
   s.postRender.addEventListener(function tick(){
     const st = ts.statistics || {};
     hud.innerHTML = '<b>GeoSqueeze × CesiumJS</b>（标准 3D Tiles 直读）\\n' +
