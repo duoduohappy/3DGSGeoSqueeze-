@@ -28,6 +28,12 @@ _CT = {5120: ("i1", 127.0), 5121: ("u1", 255.0), 5122: ("i2", 32767.0),
 _NC = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4, "MAT4": 16}
 
 
+_UNSUPPORTED_EXT = {
+    "EXT_meshopt_compression": "网格几何压缩（meshopt）",
+    "KHR_draco_mesh_compression": "Draco 几何压缩",
+}
+
+
 def _glb_chunks(raw: bytes) -> tuple[dict, bytes]:
     magic, _ver, _total = struct.unpack_from("<III", raw, 0)
     if magic != 0x46546C67:
@@ -36,6 +42,16 @@ def _glb_chunks(raw: bytes) -> tuple[dict, bytes]:
     if jt != 0x4E4F534A:
         raise ValueError("GLB 首个分块不是 JSON")
     js = json.loads(raw[20:20 + jl])
+    # 必需扩展里出现几何压缩扩展时，bufferView 的 byteLength 是「解压后」尺寸，
+    # 直接按未压缩长度读取会得到晦涩的 buffer 越界错误 —— 提前给出可行动的提示
+    bad = [e for e in (js.get("extensionsRequired") or []) if e in _UNSUPPORTED_EXT]
+    if bad:
+        raise ValueError(
+            "该 glb 使用了 GeoSqueeze 尚不解码的几何压缩扩展："
+            + "、".join(f"{e}（{_UNSUPPORTED_EXT[e]}）" for e in bad)
+            + "。这类数据（3DBAG、Cesium ion 导出的 meshopt 瓦片等）需先用 "
+              "gltf-transform / gltfpack 等工具解压为普通 glb 再压缩；"
+              "仅在线渲染不受影响（CesiumJS 原生支持该扩展）。")
     off = 20 + jl
     binary = b""
     if off + 8 <= len(raw):
